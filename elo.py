@@ -23,8 +23,8 @@ class Elo:
             b = random.choice(list(self.ratings.keys()))
         return a, b
 
-import mcts
-from mcts import FLAGS
+import evaluator
+from evaluator import FLAGS
 from absl import app
 import random
 num_matches = 0
@@ -46,7 +46,7 @@ for m in range(num_matches):
             FLAGS.player2 = agents[b][0]
             FLAGS.max_simulations2 = agents[b][1]
             try:
-                app.run(mcts.main)
+                app.run(evaluator.main)
             except:
                 pass
 
@@ -58,14 +58,14 @@ for m in range(num_matches):
         FLAGS.max_simulations = agents[a][1]
         FLAGS.player2 = "az"
         try:
-            app.run(mcts.main)
+            app.run(evaluator.main)
         except:
             pass
         FLAGS.player2 = agents[a][0]
         FLAGS.max_simulations2 = agents[a][1]
         FLAGS.player1 = "az"
         try:
-            app.run(mcts.main)
+            app.run(evaluator.main)
         except:
             pass
 
