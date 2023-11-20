@@ -65,7 +65,8 @@ def _init_bot(bot_type, game, player_id):
         solve=FLAGS.solve,
         verbose=FLAGS.verbose)
   if bot_type == "az":
-    model = az_model.Model.from_checkpoint(FLAGS.az_path)
+    path = FLAGS.az_path if player_id == 0 else FLAGS.az_path2
+    model = az_model.Model.from_checkpoint(path)
     evaluator = az_evaluator.AlphaZeroEvaluator(game, model)
     return mcts.MCTSBot(
         game,
