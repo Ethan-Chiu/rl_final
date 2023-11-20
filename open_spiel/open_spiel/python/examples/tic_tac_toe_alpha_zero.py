@@ -25,20 +25,20 @@ from absl import flags
 from open_spiel.python.algorithms.alpha_zero import alpha_zero
 from open_spiel.python.utils import spawn
 
-flags.DEFINE_string("path", None, "Where to save checkpoints.")
+flags.DEFINE_string("path", "../../../results/test_ttt_setting", "Where to save checkpoints.")
 FLAGS = flags.FLAGS
 
 
 def main(unused_argv):
   config = alpha_zero.Config(
-      game="tic_tac_toe",
+      game="ultimate_tic_tac_toe",
       path=FLAGS.path,
       learning_rate=0.01,
       weight_decay=1e-4,
       train_batch_size=128,
       replay_buffer_size=2**14,
       replay_buffer_reuse=4,
-      max_steps=25,
+      max_steps=1000,
       checkpoint_freq=25,
 
       actors=4,
