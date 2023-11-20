@@ -2,6 +2,7 @@
 __pycache__/
 *.py[cod]
 *$py.class
+*.pyc
 
  # C extensions
 *.so
@@ -62,3 +63,10 @@ open_spiel/.vs
 /.env
 
 results/
+
+/temp/
+/.project
+/.pydevproject
+
+# checkpoint
+checkpoints/
