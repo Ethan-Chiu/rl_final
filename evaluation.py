@@ -22,17 +22,19 @@ _KNOWN_PLAYERS = [
     "az"
 ]
 
-flags.DEFINE_string("game", "ultimate_tic_tac_toe", "Name of the game.")
+flags.DEFINE_string("game", "tic_tac_toe", "Name of the game.")
 flags.DEFINE_enum("player1", "az", _KNOWN_PLAYERS, "Who controls player 1.")
-flags.DEFINE_enum("player2", "mcts", _KNOWN_PLAYERS, "Who controls player 2.")
+flags.DEFINE_enum("player2", "az", _KNOWN_PLAYERS, "Who controls player 2.")
 flags.DEFINE_string("gtp_path", None, "Where to find a binary for gtp.")
 flags.DEFINE_multi_string("gtp_cmd", [], "GTP commands to run at init.")
-flags.DEFINE_string("az_path", "./uttt/checkpoint-110",
+flags.DEFINE_string("az_path", "./ttt/checkpoint-50",
+                    "Path to an alpha_zero checkpoint. Needed by an az player.")
+flags.DEFINE_string("az_path2", "./ttt/checkpoint-50",
                     "Path to an alpha_zero checkpoint. Needed by an az player.")
 flags.DEFINE_integer("uct_c", 2, "UCT's exploration constant.")
 flags.DEFINE_integer("rollout_count", 1, "How many rollouts to do.")
-flags.DEFINE_integer("max_simulations", 10, "How many simulations to run.")
-flags.DEFINE_integer("max_simulations2", 10, "How many simulations to run.")
+flags.DEFINE_integer("max_simulations", 30, "How many simulations to run.")
+flags.DEFINE_integer("max_simulations2", 30, "How many simulations to run.")
 flags.DEFINE_integer("num_games", 30, "How many games to play.")
 flags.DEFINE_integer("seed", None, "Seed for the random number generator.")
 flags.DEFINE_bool("random_first", False, "Play the first move randomly.")
@@ -172,6 +174,10 @@ def main(argv):
         FLAGS.player1 = "mcts" + str(FLAGS.max_simulations)
     if FLAGS.player2 == "mcts":
         FLAGS.player2 = "mcts" + str(FLAGS.max_simulations2)
+    if FLAGS.player1 == "az":
+        FLAGS.player1 = "az" + str(FLAGS.az_path[-2:])
+    if FLAGS.player2 == "az":
+        FLAGS.player2 = "az" + str(FLAGS.az_path[-2:])
     for game_num in range(FLAGS.num_games):
         returns, history = _play_game(game, bots, argv[1:])
         histories[" ".join(history)] += 1
