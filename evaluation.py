@@ -41,6 +41,7 @@ flags.DEFINE_bool("random_first", False, "Play the first move randomly.")
 flags.DEFINE_bool("solve", True, "Whether to use MCTS-Solver.")
 flags.DEFINE_bool("quiet", True, "Don't show the moves as they're played.")
 flags.DEFINE_bool("verbose", False, "Show the MCTS stats of possible moves.")
+flags.DEFINE_string("log", "arena.log", "Where to save log.")
 
 FLAGS = flags.FLAGS
 
@@ -176,11 +177,9 @@ def main(argv):
     if FLAGS.player2 == "mcts":
         FLAGS.player2 = "mcts" + str(FLAGS.max_simulations2)
     if FLAGS.player1 == "az":
-        #FLAGS.player1 = "az" + str(FLAGS.az_path[-2:])
-        FLAGS.player1 = "az" + str(FLAGS.az_path).split('-')[-1]
+        FLAGS.player1 = "az" + str(FLAGS.az_path.split('checkpoint-')[1])
     if FLAGS.player2 == "az":
-        #FLAGS.player2 = "az" + str(FLAGS.az_path[-2:])
-        FLAGS.player2 = "az" + str(FLAGS.az_path2).split('-')[-1]
+        FLAGS.player2 = "az" + str(FLAGS.az_path2.split('checkpoint-')[1])
     for game_num in range(FLAGS.num_games):
         returns, history = _play_game(game, bots, argv[1:])
         histories[" ".join(history)] += 1
@@ -193,7 +192,7 @@ def main(argv):
             overall_wins[2] += 1
         l.append(returns[0])
     print(FLAGS.player1, "v.s.", FLAGS.player2, "results", overall_wins)
-    f = open('arena.log', 'a')
+    f = open(FLAGS.log, 'a')
     f.write(FLAGS.player1 + "/" + FLAGS.player2 + "/" + str(l) + '\n')
     f.close()
     # print("Average return", average_return/FLAGS.num_games)

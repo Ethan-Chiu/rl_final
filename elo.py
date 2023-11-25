@@ -1,4 +1,11 @@
 from collections import OrderedDict
+import random
+
+log = 'battle.log'
+mcts = [2, 5, 10, 30]
+az = [i for i in range(0,570,30)]
+iterations = 100
+
 class Elo:
     def __init__(self, k):
         self.ratings = OrderedDict([])	
@@ -11,7 +18,7 @@ class Elo:
         result = 1/((10.0**(min((self.ratings[b]-self.ratings[a])/400.0, 255)))+1)
         self.ratings[a] = max(self.ratings[a] + self.k * (r - result), 0)
         self.ratings[b] = max(self.ratings[b] + self.k * (result - r), 0)
-        self.sort()
+        # self.sort()
 
     def sort(self):
         self.ratings = OrderedDict([(k,v) for k, v in sorted(self.ratings.items(), key=lambda i: i[1])])
@@ -23,58 +30,32 @@ class Elo:
             b = random.choice(list(self.ratings.keys()))
         return a, b
 
-import evaluator
-from evaluator import FLAGS
-from absl import app
-import random
-num_matches = 0
-FLAGS.num_games = 10
-agents = {"mcts2": ["mcts", 2], "random": ["random", 0], "mcts10": ["mcts", 10], "mcts100": ["mcts", 100], "mcts1000": ["mcts", 1000]}
-names = "mcts2 random mcts10 mcts100 mcts1000".split()
-elo = Elo(k = 10)
-for a in agents.keys():
-    elo.addPlayer(a)
-for m in range(num_matches):
-    for i in range(5):
-        for j in range(5):
-            if i == j:
-                continue
-            a = names[i]
-            b = names[j]
-            FLAGS.player1 = agents[a][0]
-            FLAGS.max_simulations = agents[a][1]
-            FLAGS.player2 = agents[b][0]
-            FLAGS.max_simulations2 = agents[b][1]
-            try:
-                app.run(evaluator.main)
-            except:
-                pass
 
-elo.addPlayer("az")
-for m in range(num_matches):
-    for i in range(5):
-        a = names[i]
-        FLAGS.player1 = agents[a][0]
-        FLAGS.max_simulations = agents[a][1]
-        FLAGS.player2 = "az"
-        try:
-            app.run(evaluator.main)
-        except:
-            pass
-        FLAGS.player2 = agents[a][0]
-        FLAGS.max_simulations2 = agents[a][1]
-        FLAGS.player1 = "az"
-        try:
-            app.run(evaluator.main)
-        except:
-            pass
-
-f = open('arena.log', 'r')
+f = open(log, 'r')
 lines = f.readlines()
-for z in range(5):
-    for line in lines:
-        g = line.split('/')
+avg = OrderedDict([])	
+for m in mcts:
+    avg["mcts"+str(m)] = 0
+for a in az:
+    avg["az"+str(a)] = 0
+for t in range(iterations):
+    random.shuffle(lines)
+    elo = Elo(k = 10)
+    for m in mcts:
+        elo.addPlayer("mcts"+str(m))
+    for a in az:
+        elo.addPlayer("az"+str(a))
+    for l in lines:
+        g = l.split('/')
         results = eval(g[2])
         for i in results:
             elo.game(g[0], g[1], (i+1)/2)
-print(elo.ratings)
+        g = l.split('/')
+        results = eval(g[2])
+        for i in results:
+            elo.game(g[0], g[1], (i+1)/2)
+    for a in elo.ratings:
+        avg[a] += elo.ratings[a]
+avg = OrderedDict([(k,v) for k, v in sorted(avg.items(), key=lambda i: i[1])])
+for l in reversed(list(avg)):
+    print(l, avg[l]/iterations)
