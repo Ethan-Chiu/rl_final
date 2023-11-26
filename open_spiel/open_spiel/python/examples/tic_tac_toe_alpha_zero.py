@@ -25,28 +25,29 @@ from absl import flags
 from open_spiel.python.algorithms.alpha_zero import alpha_zero
 from open_spiel.python.utils import spawn
 
-flags.DEFINE_string("path", "../../../results/test_ttt_setting", "Where to save checkpoints.")
+flags.DEFINE_string("path", "../../../results/pcp_0.25_0.25-fpaptp_2_0.5", "Where to save checkpoints.")
 FLAGS = flags.FLAGS
 
+# pcp fpaptp
 
 def main(unused_argv):
   config = alpha_zero.Config(
-      game="ultimate_tic_tac_toe",
+      game="tic_tac_toe",
       path=FLAGS.path,
       learning_rate=0.01,
       weight_decay=1e-4,
       train_batch_size=128,
       replay_buffer_size=2**14,
       replay_buffer_reuse=4,
-      max_steps=1000,
-      checkpoint_freq=25,
+      max_steps=30,
+      checkpoint_freq=2,
 
       actors=4,
       evaluators=4,
-      uct_c=1,
-      max_simulations=20,
+      uct_c=1.1,
+      max_simulations=100,
       policy_alpha=0.25,
-      policy_epsilon=1,
+      policy_epsilon=0.25,
       temperature=1,
       temperature_drop=4,
       evaluation_window=50,
@@ -59,6 +60,14 @@ def main(unused_argv):
       output_size=None,
 
       quiet=True,
+
+      use_playout_cap_randomization = True,
+      playout_cap_randomization_p = 0.25,
+      playout_cap_randomization_fraction = 0.25,
+
+      use_forced_playouts_and_policy_target_pruning = True,
+      forced_playouts_and_policy_target_pruning_k = 2,
+      forced_playouts_and_policy_target_pruning_exponent = 0.5,
   )
   alpha_zero.alpha_zero(config)
 
