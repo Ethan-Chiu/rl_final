@@ -4,13 +4,14 @@ from evaluation import FLAGS
 from absl import app
 import random
 
-game = "ultimate_tic_tac_toe"
-num_matches = 5
+# game = "tic_tac_toe"
+game = "dots_and_boxes"
+num_matches = 1
 num_games = 5
-directory = "./uttt"
-mcts = [2, 5, 10, 30]
-az = [i for i in range(0, 570, 30)]
-log = "battle.log"
+directory = "/home/howard/RL/final_project/results/test_dots_and_boxes_6*6_5"
+mcts = [100,1000] # [2, 5, 10, 30, 100]
+az = [i for i in range(200,231,10)]
+log = "/home/howard/RL/final_project/logs/test_dots_and_boxes_6*6_5.log"
 
 FLAGS.game = game
 FLAGS.num_games = num_games
@@ -27,6 +28,7 @@ for m in range(num_matches):
             try:
                 app.run(evaluation.main)
             except:
+                print("ERROR\n\n\n")
                 pass
             FLAGS.player1 = "mcts"
             FLAGS.player2 = "az"

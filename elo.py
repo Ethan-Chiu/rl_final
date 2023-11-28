@@ -1,9 +1,12 @@
 from collections import OrderedDict
 import random
 
-log = 'battle.log'
-mcts = [2, 5, 10, 30]
-az = [i for i in range(0,570,30)]
+log = '/home/howard/RL/final_project/logs/ttt_pcp_0.25_0.25.log'
+elo_log = '/home/howard/RL/final_project/logs/elo_ttt_pcp_0.25_0.25.log'
+# mcts = [2, 5, 10, 30]
+# az = [i for i in range(0,570,30)]
+mcts = [ 5,10,50,100,1000,10000] # [2, 5, 10, 30, 100]
+az = [i for i in range(0,31,2)]
 iterations = 100
 
 class Elo:
@@ -57,5 +60,7 @@ for t in range(iterations):
     for a in elo.ratings:
         avg[a] += elo.ratings[a]
 avg = OrderedDict([(k,v) for k, v in sorted(avg.items(), key=lambda i: i[1])])
+w = open(elo_log,'w')
 for l in reversed(list(avg)):
+    w.write(f"{l} {avg[l]/iterations}\n")
     print(l, avg[l]/iterations)
