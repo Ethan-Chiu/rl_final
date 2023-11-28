@@ -55,6 +55,7 @@ Manifest.toml
 
 
 open_spiel/cmake-build-debug/
+logs
 
 # Swift generated build file
 Package.resolved
@@ -70,3 +71,4 @@ results/
 
 # checkpoint
 checkpoints/
+*.log

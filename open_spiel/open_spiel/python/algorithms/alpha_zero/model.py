@@ -66,37 +66,42 @@ def residual_layer(inputs, num_filters, kernel_size, training, updates, name):
 
 
 class TrainInput(collections.namedtuple(
-    "TrainInput", "observation legals_mask policy value")):
+    "TrainInput", "observation legals_mask policy value opp_policy opp_legals_mask")):
   """Inputs for training the Model."""
 
   @staticmethod
   def stack(train_inputs):
-    observation, legals_mask, policy, value = zip(*train_inputs)
+    # NOTE: ADD opp_policy & opp_legals_mask
+    observation, legals_mask, policy, value, opp_policy, opp_legals_mask = zip(*train_inputs)
     return TrainInput(
         np.array(observation, dtype=np.float32),
         np.array(legals_mask, dtype=bool),
         np.array(policy),
-        np.expand_dims(value, 1))
+        np.expand_dims(value, 1),
+        np.array(opp_policy),
+        np.array(opp_legals_mask, dtype=bool))
 
 
-class Losses(collections.namedtuple("Losses", "policy value l2")):
+# NOTE: ADD opp loss
+class Losses(collections.namedtuple("Losses", "policy value l2 opp")):
   """Losses from a training step."""
 
   @property
   def total(self):
-    return self.policy + self.value + self.l2
+    return self.policy + self.value + self.l2 + self.opp
 
   def __str__(self):
     return ("Losses(total: {:.3f}, policy: {:.3f}, value: {:.3f}, "
-            "l2: {:.3f})").format(self.total, self.policy, self.value, self.l2)
+            "l2: {:.3f}, opp: {:.3f})").format(self.total, self.policy, self.value, self.l2, self.opp)
 
   def __add__(self, other):
     return Losses(self.policy + other.policy,
                   self.value + other.value,
-                  self.l2 + other.l2)
+                  self.l2 + other.l2,
+                  self.opp + other.opp)
 
   def __truediv__(self, n):
-    return Losses(self.policy / n, self.value / n, self.l2 / n)
+    return Losses(self.policy / n, self.value / n, self.l2 / n, self.opp / n)
 
 
 class Model(object):
@@ -154,13 +159,18 @@ class Model(object):
     self._policy_loss = get_var("policy_loss")
     self._value_loss = get_var("value_loss")
     self._l2_reg_loss = get_var("l2_reg_loss")
+    # NOTE: ADD opp reg loss 
+    self._opp_policy_loss = get_var("opp_policy_loss")
     self._policy_targets = get_var("policy_targets")
     self._value_targets = get_var("value_targets")
+    # NOTE: ADD opp_policy_target & opp_legals_mask
+    self._opp_policy_targets = get_var("opp_policy_targets")
+    self._opp_legals_mask = get_var("opp_legals_mask")
     self._train = self._session.graph.get_operation_by_name("train")
 
   @classmethod
   def build_model(cls, model_type, input_shape, output_size, nn_width, nn_depth,
-                  weight_decay, learning_rate, path):
+                  weight_decay, learning_rate, path, use_apt, apt_weight):
     """Build a model with the specified params."""
     if model_type not in cls.valid_model_types:
       raise ValueError(f"Invalid model type: {model_type}, "
@@ -171,7 +181,7 @@ class Model(object):
     g = tf.Graph()  # Allow multiple independent models and graphs.
     with g.as_default():
       cls._define_graph(model_type, input_shape, output_size, nn_width,
-                        nn_depth, weight_decay, learning_rate)
+                        nn_depth, weight_decay, learning_rate, use_apt, apt_weight)
       init = tf.variables_initializer(tf.global_variables(),
                                       name="init_all_vars_op")
       with tf.device("/cpu:0"):  # Saver only works on CPU.
@@ -210,13 +220,15 @@ class Model(object):
 
   @staticmethod
   def _define_graph(model_type, input_shape, output_size,
-                    nn_width, nn_depth, weight_decay, learning_rate):
+                    nn_width, nn_depth, weight_decay, learning_rate, use_apt, apt_weight):
     """Define the model graph."""
     # Inference inputs
     input_size = int(np.prod(input_shape))
     observations = tf.placeholder(tf.float32, [None, input_size], name="input")
     legals_mask = tf.placeholder(tf.bool, [None, output_size],
                                  name="legals_mask")
+    opp_legals_mask = tf.placeholder(tf.bool, [None, output_size],
+                                 name="opp_legals_mask")
     training = tf.placeholder(tf.bool, name="training")
 
     bn_updates = []
@@ -270,11 +282,35 @@ class Model(object):
                                         name="policy_softmax")
     policy_targets = tf.placeholder(
         shape=[None, output_size], dtype=tf.float32, name="policy_targets")
+    
+    # NOTE: ADD opp_policy_targets
+    if use_apt:
+      opp_policy_logits = tfkl.Dense(output_size, name="opp_policy")(policy_head)
+      # opp_policy_logits = tf.where(opp_legals_mask, opp_policy_logits,
+      #                          -1e32 * tf.ones_like(opp_policy_logits))
+      unused_opp_policy_softmax = tf.identity(tfkl.Softmax()(policy_logits),
+                                          name="opp_policy_softmax")
+      
+    opp_policy_targets = tf.placeholder(
+        shape=[None, output_size], dtype=tf.float32, name="opp_policy_targets")
+    # ----
+
     policy_loss = tf.reduce_mean(
         tf.nn.softmax_cross_entropy_with_logits_v2(
             logits=policy_logits, labels=policy_targets),
         name="policy_loss")
-
+    
+    # NOTE: ADD opp_policy_loss
+    if use_apt:
+      opp_policy_loss_org = tf.reduce_mean(
+          tf.nn.softmax_cross_entropy_with_logits_v2(
+              logits=opp_policy_logits, labels=opp_policy_targets),
+          name="opp_policy_loss_org")
+      opp_policy_loss = tf.scalar_mul( apt_weight, opp_policy_loss_org, name="opp_policy_loss" )
+    else:
+      opp_policy_loss = tf.constant( 0.0 , name="opp_policy_loss" )
+    # --
+    
     # The value head
     if model_type == "mlp":
       value_head = torso  # Nothing specific before the shared value head.
@@ -304,7 +340,9 @@ class Model(object):
         if "/bias:" not in var.name
     ], name="l2_reg_loss")
 
-    total_loss = policy_loss + value_loss + l2_reg_loss
+    # NOTE: ADD weighted opp policy loss 
+    total_loss = policy_loss + value_loss + l2_reg_loss + opp_policy_loss
+
     optimizer = tf.train.AdamOptimizer(learning_rate)
     with tf.control_dependencies(bn_updates):
       unused_train = optimizer.minimize(total_loss, name="train")
@@ -335,16 +373,19 @@ class Model(object):
     """Runs a training step."""
     batch = TrainInput.stack(train_inputs)
 
+    # NOTE: OUTPUT opp loss
     # Run a training step and get the losses.
-    _, policy_loss, value_loss, l2_reg_loss = self._session.run(
-        [self._train, self._policy_loss, self._value_loss, self._l2_reg_loss],
+    _, policy_loss, value_loss, l2_reg_loss, opp_policy_loss = self._session.run(
+        [self._train, self._policy_loss, self._value_loss, self._l2_reg_loss, self._opp_policy_loss],
         feed_dict={self._input: batch.observation,
                    self._legals_mask: batch.legals_mask,
                    self._policy_targets: batch.policy,
                    self._value_targets: batch.value,
+                   self._opp_policy_targets: batch.opp_policy,
+                   self._opp_legals_mask: batch.opp_legals_mask,
                    self._training: True})
 
-    return Losses(policy_loss, value_loss, l2_reg_loss)
+    return Losses(policy_loss, value_loss, l2_reg_loss, opp_policy_loss)
 
   def save_checkpoint(self, step):
     return self._saver.save(

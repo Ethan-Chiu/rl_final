@@ -28,7 +28,6 @@ from open_spiel.python.utils import spawn
 flags.DEFINE_string("path", "/home/howard/RL/final_project/results/test_dots_and_boxes_6*6_5", "Where to save checkpoints.")
 FLAGS = flags.FLAGS
 
-
 def main(unused_argv):
   config = alpha_zero.Config(
       game="dots_and_boxes",
@@ -59,6 +58,20 @@ def main(unused_argv):
       output_size=None,
 
       quiet=True,
+
+      use_playout_cap_randomization = True,
+      playout_cap_randomization_p = 0.25,
+      playout_cap_randomization_fraction = 0.25,
+
+      use_forced_playouts_and_policy_target_pruning = True,
+      forced_playouts_and_policy_target_pruning_k = 2,
+      forced_playouts_and_policy_target_pruning_exponent = 0.5,
+
+      growing = 1,
+
+      # APT
+      use_auxiliary_policy_target=True,
+      auxiliary_policy_target_weight= 0.15,
   )
   alpha_zero.alpha_zero(config)
 

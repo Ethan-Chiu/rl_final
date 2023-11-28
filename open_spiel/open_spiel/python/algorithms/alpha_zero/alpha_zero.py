@@ -62,13 +62,16 @@ class TrajectoryState(object):
   """A particular point along a trajectory."""
 
   def __init__(self, observation, current_player, legals_mask, action, policy,
-               value):
+               value, opp_policy, opp_legals_mask):
     self.observation = observation
     self.current_player = current_player
     self.legals_mask = legals_mask
     self.action = action
     self.policy = policy
     self.value = value
+    # NOTE: ADD opp_policy
+    self.opp_policy = opp_policy
+    self.opp_legals_mask = opp_legals_mask
 
 
 class Trajectory(object):
@@ -139,6 +142,19 @@ class Config(collections.namedtuple(
         "output_size",
 
         "quiet",
+
+        "use_playout_cap_randomization",
+        "playout_cap_randomization_p",
+        "playout_cap_randomization_fraction",
+
+        "use_forced_playouts_and_policy_target_pruning",
+        "forced_playouts_and_policy_target_pruning_k",
+        "forced_playouts_and_policy_target_pruning_exponent",
+
+        "growing", # 0: ordinary, 1: reusing simulations for both player(expected fastest), 2: each player has its own simulation history tree
+
+        "use_auxiliary_policy_target",
+        "auxiliary_policy_target_weight", # weight for auxiliary policy targets (opponent's policy) loss
     ])):
   """A config for the model/experiment."""
   pass
@@ -153,7 +169,11 @@ def _init_model_from_config(config):
       config.nn_depth,
       config.weight_decay,
       config.learning_rate,
-      config.path)
+      config.path,
+      # NOTE: for auxiliary policy target
+      config.use_auxiliary_policy_target,
+      config.auxiliary_policy_target_weight,
+      )
 
 
 def watcher(fn):
@@ -192,6 +212,12 @@ def _init_bot(config, game, evaluator_, evaluation):
       config.uct_c,
       config.max_simulations,
       evaluator_,
+      config.use_playout_cap_randomization,
+      config.playout_cap_randomization_p,
+      config.playout_cap_randomization_fraction,
+      config.use_forced_playouts_and_policy_target_pruning,
+      config.forced_playouts_and_policy_target_pruning_k,
+      config.forced_playouts_and_policy_target_pruning_exponent,
       solve=False,
       dirichlet_noise=noise,
       child_selection_fn=mcts.SearchNode.puct_value,
@@ -199,7 +225,7 @@ def _init_bot(config, game, evaluator_, evaluation):
       dont_return_chance_node=True)
 
 
-def _play_game(logger, game_num, game, bots, temperature, temperature_drop):
+def _play_game(logger, game_num, game, bots, temperature, temperature_drop, growing, use_apt):
   """Play one game, return the trajectory."""
   trajectory = Trajectory()
   actions = []
@@ -207,6 +233,7 @@ def _play_game(logger, game_num, game, bots, temperature, temperature_drop):
   random_state = np.random.RandomState()
   logger.opt_print(" Starting game {} ".format(game_num).center(60, "-"))
   logger.opt_print("Initial state:\n{}".format(state))
+  tree = [None] * 2
   while not state.is_terminal():
     if state.is_chance_node():
       # For chance nodes, rollout according to chance node's probability
@@ -216,25 +243,79 @@ def _play_game(logger, game_num, game, bots, temperature, temperature_drop):
       action = random_state.choice(action_list, p=prob_list)
       state.apply_action(action)
     else:
-      root = bots[state.current_player()].mcts_search(state)
+      player = state.current_player()
+      if growing == 2:
+          root = bots[player].mcts_search(state, tree[player])
+      elif growing == 1:
+          root = bots[player].mcts_search(state, tree[0])
+      else:
+          root = bots[player].mcts_search(state, None)
       policy = np.zeros(game.num_distinct_actions())
+      best_action = root.best_child().action
       for c in root.children:
-        policy[c.action] = c.explore_count
+        policy[c.action] = c.pruned_explore_count(root.explore_count, best_action == c.action)
       policy = policy**(1 / temperature)
+      # print("normal", policy.sum())
       policy /= policy.sum()
       if len(actions) >= temperature_drop:
-        action = root.best_child().action
+        action = best_action
       else:
         action = np.random.choice(len(policy), p=policy)
-      trajectory.states.append(
-          TrajectoryState(state.observation_tensor(), state.current_player(),
-                          state.legal_actions_mask(), action, policy,
-                          root.total_reward / root.explore_count))
+
+      # NOTE: Calculate target opp policy
+      opp_policy = np.zeros(game.num_distinct_actions())
+      if use_apt:
+        best_child = root.best_child()
+        if len(best_child.children) != 0:
+          best_child_action = best_child.best_child().action
+          for cc in best_child.children:
+            opp_policy[cc.action] = cc.pruned_explore_count(best_child.explore_count, best_child_action == cc.action)
+          opp_policy = opp_policy**(1 / temperature)
+          opp_policy /= opp_policy.sum()
+        else:
+          opp_policy[:] = 1/len(opp_policy)
+      
+      observation = state.observation_tensor()
+      current_player = state.current_player()
+      legal_actions_mask = state.legal_actions_mask()
+
+      if growing == 2:
+          for c in root.children:
+              if c.action == action:
+                  tree[player] = c
+                  break
+          else:
+              tree[player] = None
+          notroot = tree[1-player]
+          if notroot:
+              for c in notroot.children:
+                  if c.action == action:
+                      tree[1-player] = c
+                      break
+              else:
+                  tree[1-player] = None
+      elif growing == 1:
+          for c in root.children:
+              if c.action == action:
+                  tree[0] = c
+                  break
+    
       action_str = state.action_to_string(state.current_player(), action)
+
+      # NOTE: Add opp_legal_actions_mask
+      state.apply_action(action)
+      opp_legal_actions_mask = state.legal_actions_mask()
+
+      trajectory.states.append(
+          TrajectoryState(observation, current_player,
+                          legal_actions_mask, action, policy,
+                          root.total_reward / root.explore_count,
+                          opp_policy, opp_legal_actions_mask))
+      
       actions.append(action_str)
       logger.opt_print("Player {} sampled action: {}".format(
-          state.current_player(), action_str))
-      state.apply_action(action)
+          current_player, action_str))
+      
   logger.opt_print("Next state:\n{}".format(state))
 
   trajectory.returns = state.returns()
@@ -276,7 +357,8 @@ def actor(*, config, game, logger, queue):
     if not update_checkpoint(logger, queue, model, az_evaluator):
       return
     queue.put(_play_game(logger, game_num, game, bots, config.temperature,
-                         config.temperature_drop))
+                         config.temperature_drop, config.growing, 
+                         config.use_auxiliary_policy_target,))
 
 
 @watcher
@@ -303,6 +385,12 @@ def evaluator(*, game, config, logger, queue):
             config.uct_c,
             max_simulations,
             random_evaluator,
+            config.use_playout_cap_randomization,
+            config.playout_cap_randomization_p,
+            config.playout_cap_randomization_fraction,
+            config.use_forced_playouts_and_policy_target_pruning,
+            config.forced_playouts_and_policy_target_pruning_k,
+            config.forced_playouts_and_policy_target_pruning_exponent,
             solve=True,
             verbose=False,
             dont_return_chance_node=True)
@@ -311,7 +399,8 @@ def evaluator(*, game, config, logger, queue):
       bots = list(reversed(bots))
 
     trajectory = _play_game(logger, game_num, game, bots, temperature=1,
-                            temperature_drop=0)
+                            temperature_drop=0, growing=config.growing, 
+                            use_apt=config.use_auxiliary_policy_target,)
     results.append(trajectory.returns[az_player])
     queue.put((difficulty, trajectory.returns[az_player]))
 
@@ -381,7 +470,7 @@ def learner(*, game, config, actors, evaluators, broadcast_fn, logger):
 
       replay_buffer.extend(
           model_lib.TrainInput(
-              s.observation, s.legals_mask, s.policy, p1_outcome)
+              s.observation, s.legals_mask, s.policy, p1_outcome, s.opp_policy, s.opp_legals_mask)
           for s in trajectory.states)
 
       for stage in range(stage_count):
@@ -407,7 +496,7 @@ def learner(*, game, config, actors, evaluators, broadcast_fn, logger):
     # the actors. It only allows numbers, so use -1 as "latest".
     save_path = model.save_checkpoint(
         step if step % config.checkpoint_freq == 0 else -1)
-    losses = sum(losses, model_lib.Losses(0, 0, 0)) / len(losses)
+    losses = sum(losses, model_lib.Losses(0, 0, 0, 0)) / len(losses)
     logger.print(losses)
     logger.print("Checkpoint saved:", save_path)
     return save_path, losses
@@ -473,6 +562,7 @@ def learner(*, game, config, actors, evaluators, broadcast_fn, logger):
             "policy": losses.policy,
             "value": losses.value,
             "l2reg": losses.l2,
+            "opp_policy": losses.opp,
             "sum": losses.total,
         },
         "cache": {  # Null stats because it's hard to report between processes.
