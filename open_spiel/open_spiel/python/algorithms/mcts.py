@@ -377,7 +377,7 @@ class MCTSBot(pyspiel.Bot):
 
     return visit_path, working_state
 
-  def mcts_search(self, state):
+  def mcts_search(self, state, root=None):
     """A vanilla Monte-Carlo Tree Search algorithm.
 
     This algorithm searches the game tree from the given state.
@@ -426,7 +426,8 @@ class MCTSBot(pyspiel.Bot):
     Returns:
       The most visited move from the root node.
     """
-    root = SearchNode(None, state.current_player(), 1, self.use_forced_playouts_and_policy_target_pruning, self.forced_playouts_and_policy_target_pruning_k, self.forced_playouts_and_policy_target_pruning_exponent)
+    if not root:
+      root = SearchNode(None, state.current_player(), 1, self.use_forced_playouts_and_policy_target_pruning, self.forced_playouts_and_policy_target_pruning_k, self.forced_playouts_and_policy_target_pruning_exponent)
     for _ in range(self.max_simulations):
       visit_path, working_state = self._apply_tree_policy(root, state)
       if working_state.is_terminal():

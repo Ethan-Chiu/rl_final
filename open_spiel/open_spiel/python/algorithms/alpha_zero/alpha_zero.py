@@ -150,6 +150,8 @@ class Config(collections.namedtuple(
         "use_forced_playouts_and_policy_target_pruning",
         "forced_playouts_and_policy_target_pruning_k",
         "forced_playouts_and_policy_target_pruning_exponent",
+
+        "growing", # 0: ordinary, 1: reusing simulations for both player(expected fastest), 2: each player has its own simulation history tree
     ])):
   """A config for the model/experiment."""
   pass
@@ -216,7 +218,7 @@ def _init_bot(config, game, evaluator_, evaluation):
       dont_return_chance_node=True)
 
 
-def _play_game(logger, game_num, game, bots, temperature, temperature_drop):
+def _play_game(logger, game_num, game, bots, temperature, temperature_drop, growing):
   """Play one game, return the trajectory."""
   trajectory = Trajectory()
   actions = []
@@ -224,6 +226,7 @@ def _play_game(logger, game_num, game, bots, temperature, temperature_drop):
   random_state = np.random.RandomState()
   logger.opt_print(" Starting game {} ".format(game_num).center(60, "-"))
   logger.opt_print("Initial state:\n{}".format(state))
+  tree = [None] * 2
   while not state.is_terminal():
     if state.is_chance_node():
       # For chance nodes, rollout according to chance node's probability
@@ -233,7 +236,13 @@ def _play_game(logger, game_num, game, bots, temperature, temperature_drop):
       action = random_state.choice(action_list, p=prob_list)
       state.apply_action(action)
     else:
-      root = bots[state.current_player()].mcts_search(state)
+      player = state.current_player()
+      if growing == 2:
+          root = bots[player].mcts_search(state, tree[player])
+      elif growing == 1:
+          root = bots[player].mcts_search(state, tree[0])
+      else:
+          root = bots[player].mcts_search(state, None)
       policy = np.zeros(game.num_distinct_actions())
       best_action = root.best_child().action
       for c in root.children:
@@ -245,11 +254,13 @@ def _play_game(logger, game_num, game, bots, temperature, temperature_drop):
         action = best_action
       else:
         action = np.random.choice(len(policy), p=policy)
+
       # NOTE: Calculate target opp policy
       opp_policy = np.zeros(game.num_distinct_actions())
       best_child = root.best_child()
+      best_child_action = best_child.best_child().action
       for cc in best_child.children:
-        opp_policy[cc.action] = cc.explore_count
+        opp_policy[cc.action] = cc.pruned_explore_count(best_child.explore_count, best_child_action == cc.action)
       opp_policy = opp_policy**(1 / temperature)
       opp_policy_sum = opp_policy.sum()
       if opp_policy_sum == 0:
@@ -261,6 +272,27 @@ def _play_game(logger, game_num, game, bots, temperature, temperature_drop):
       current_player = state.current_player()
       legal_actions_mask = state.legal_actions_mask()
 
+      if growing == 2:
+          for c in root.children:
+              if c.action == action:
+                  tree[player] = c
+                  break
+          else:
+              tree[player] = None
+          notroot = tree[1-player]
+          if notroot:
+              for c in notroot.children:
+                  if c.action == action:
+                      tree[1-player] = c
+                      break
+              else:
+                  tree[1-player] = None
+      elif growing == 1:
+          for c in root.children:
+              if c.action == action:
+                  tree[0] = c
+                  break
+    
       action_str = state.action_to_string(state.current_player(), action)
 
       # NOTE: Add opp_legal_actions_mask
@@ -318,7 +350,7 @@ def actor(*, config, game, logger, queue):
     if not update_checkpoint(logger, queue, model, az_evaluator):
       return
     queue.put(_play_game(logger, game_num, game, bots, config.temperature,
-                         config.temperature_drop))
+                         config.temperature_drop, config.growing))
 
 
 @watcher
@@ -359,7 +391,7 @@ def evaluator(*, game, config, logger, queue):
       bots = list(reversed(bots))
 
     trajectory = _play_game(logger, game_num, game, bots, temperature=1,
-                            temperature_drop=0)
+                            temperature_drop=0, growing=config.growing)
     results.append(trajectory.returns[az_player])
     queue.put((difficulty, trajectory.returns[az_player]))
 

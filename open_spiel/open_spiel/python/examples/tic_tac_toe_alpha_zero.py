@@ -73,6 +73,8 @@ def main(unused_argv):
       use_forced_playouts_and_policy_target_pruning = True,
       forced_playouts_and_policy_target_pruning_k = 2,
       forced_playouts_and_policy_target_pruning_exponent = 0.5,
+
+      growing = 1,
   )
   alpha_zero.alpha_zero(config)
 
