@@ -170,7 +170,7 @@ class Model(object):
 
   @classmethod
   def build_model(cls, model_type, input_shape, output_size, nn_width, nn_depth,
-                  weight_decay, learning_rate, path):
+                  weight_decay, learning_rate, path, use_apt, apt_weight):
     """Build a model with the specified params."""
     if model_type not in cls.valid_model_types:
       raise ValueError(f"Invalid model type: {model_type}, "
@@ -181,7 +181,7 @@ class Model(object):
     g = tf.Graph()  # Allow multiple independent models and graphs.
     with g.as_default():
       cls._define_graph(model_type, input_shape, output_size, nn_width,
-                        nn_depth, weight_decay, learning_rate)
+                        nn_depth, weight_decay, learning_rate, use_apt, apt_weight)
       init = tf.variables_initializer(tf.global_variables(),
                                       name="init_all_vars_op")
       with tf.device("/cpu:0"):  # Saver only works on CPU.
@@ -220,7 +220,7 @@ class Model(object):
 
   @staticmethod
   def _define_graph(model_type, input_shape, output_size,
-                    nn_width, nn_depth, weight_decay, learning_rate):
+                    nn_width, nn_depth, weight_decay, learning_rate, use_apt, apt_weight):
     """Define the model graph."""
     # Inference inputs
     input_size = int(np.prod(input_shape))
@@ -284,11 +284,13 @@ class Model(object):
         shape=[None, output_size], dtype=tf.float32, name="policy_targets")
     
     # NOTE: ADD opp_policy_targets
-    opp_policy_logits = tfkl.Dense(output_size, name="opp_policy")(policy_head)
-    # opp_policy_logits = tf.where(opp_legals_mask, opp_policy_logits,
-    #                          -1e32 * tf.ones_like(opp_policy_logits))
-    unused_policy_softmax = tf.identity(tfkl.Softmax()(policy_logits),
-                                        name="opp_policy_softmax")
+    if use_apt:
+      opp_policy_logits = tfkl.Dense(output_size, name="opp_policy")(policy_head)
+      # opp_policy_logits = tf.where(opp_legals_mask, opp_policy_logits,
+      #                          -1e32 * tf.ones_like(opp_policy_logits))
+      unused_opp_policy_softmax = tf.identity(tfkl.Softmax()(policy_logits),
+                                          name="opp_policy_softmax")
+      
     opp_policy_targets = tf.placeholder(
         shape=[None, output_size], dtype=tf.float32, name="opp_policy_targets")
     # ----
@@ -297,11 +299,17 @@ class Model(object):
         tf.nn.softmax_cross_entropy_with_logits_v2(
             logits=policy_logits, labels=policy_targets),
         name="policy_loss")
+    
     # NOTE: ADD opp_policy_loss
-    opp_policy_loss = tf.reduce_mean(
-        tf.nn.softmax_cross_entropy_with_logits_v2(
-            logits=opp_policy_logits, labels=opp_policy_targets),
-        name="opp_policy_loss")
+    if use_apt:
+      opp_policy_loss_org = tf.reduce_mean(
+          tf.nn.softmax_cross_entropy_with_logits_v2(
+              logits=opp_policy_logits, labels=opp_policy_targets),
+          name="opp_policy_loss_org")
+      opp_policy_loss = tf.scalar_mul( apt_weight, opp_policy_loss_org, name="opp_policy_loss" )
+    else:
+      opp_policy_loss = tf.constant( 0.0 , name="opp_policy_loss" )
+    # --
     
     # The value head
     if model_type == "mlp":
@@ -332,8 +340,9 @@ class Model(object):
         if "/bias:" not in var.name
     ], name="l2_reg_loss")
 
-    # NOTE: ADD 0.15 opp policy loss 
-    total_loss = policy_loss + value_loss + l2_reg_loss + 0.15 * opp_policy_loss
+    # NOTE: ADD weighted opp policy loss 
+    total_loss = policy_loss + value_loss + l2_reg_loss + opp_policy_loss
+
     optimizer = tf.train.AdamOptimizer(learning_rate)
     with tf.control_dependencies(bn_updates):
       unused_train = optimizer.minimize(total_loss, name="train")

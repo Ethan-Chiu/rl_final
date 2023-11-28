@@ -30,9 +30,9 @@ FLAGS = flags.FLAGS
 
 def main(unused_argv):
   config = alpha_zero.Config(
-      game="dots_and_boxes",
+      game="tic_tac_toe",
       path=FLAGS.path,
-      learning_rate=0.001,
+      learning_rate=0.01,
       weight_decay=1e-4,
       train_batch_size=128,
       replay_buffer_size=2**14,
@@ -43,19 +43,12 @@ def main(unused_argv):
       actors=4,
       evaluators=2,
       uct_c=1,
-      max_simulations=50,
-      # max_steps=30,
-      # checkpoint_freq=2,
-
-      # actors=4,
-      # evaluators=4,
-      # uct_c=1.1,
-      # max_simulations=100,
+      max_simulations=100,
       policy_alpha=0.25,
       policy_epsilon=0.25,
       temperature=1,
       temperature_drop=4,
-      evaluation_window=20,
+      evaluation_window=100,
       eval_levels=18,
 
       nn_model="resnet",
@@ -75,73 +68,12 @@ def main(unused_argv):
       forced_playouts_and_policy_target_pruning_exponent = 0.5,
 
       growing = 1,
+
+      # APT
+      use_auxiliary_policy_target=True,
+      auxiliary_policy_target_weight= 0.15,
   )
   alpha_zero.alpha_zero(config)
-
-
-# config = alpha_zero.Config(
-#       game="connect_four",
-#       path=FLAGS.path,
-#       learning_rate=0.01,
-#       weight_decay=1e-4,
-#       train_batch_size=128,
-#       replay_buffer_size=2**14,
-#       replay_buffer_reuse=4,
-#       max_steps=1000,
-#       checkpoint_freq=10,
-
-#       actors=4,
-#       evaluators=2,
-#       uct_c=1,
-#       max_simulations=30,
-#       policy_alpha=0.25,
-#       policy_epsilon=1,
-#       temperature=1,
-#       temperature_drop=4,
-#       evaluation_window=20,
-#       eval_levels=2,
-
-#       nn_model="resnet",
-#       nn_width=128,
-#       nn_depth=4,
-#       observation_shape=None,
-#       output_size=None,
-
-#       quiet=True,
-#   )
-
-# def main(unused_argv):
-#   config = alpha_zero.Config(
-#       game="tic_tac_toe",
-#       path=FLAGS.path,
-#       learning_rate=0.01,
-#       weight_decay=1e-4,
-#       train_batch_size=128,
-#       replay_buffer_size=2**14,
-#       replay_buffer_reuse=4,
-#       max_steps=1000,
-#       checkpoint_freq=25,
-
-#       actors=4,
-#       evaluators=4,
-#       uct_c=1,
-#       max_simulations=20,
-#       policy_alpha=0.25,
-#       policy_epsilon=1,
-#       temperature=1,
-#       temperature_drop=4,
-#       evaluation_window=50,
-#       eval_levels=7,
-
-#       nn_model="resnet",
-#       nn_width=128,
-#       nn_depth=2,
-#       observation_shape=None,
-#       output_size=None,
-
-#       quiet=True,
-#   )
-#   alpha_zero.alpha_zero(config)
 
 
 if __name__ == "__main__":

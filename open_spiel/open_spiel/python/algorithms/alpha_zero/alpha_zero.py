@@ -152,6 +152,9 @@ class Config(collections.namedtuple(
         "forced_playouts_and_policy_target_pruning_exponent",
 
         "growing", # 0: ordinary, 1: reusing simulations for both player(expected fastest), 2: each player has its own simulation history tree
+
+        "use_auxiliary_policy_target",
+        "auxiliary_policy_target_weight", # weight for auxiliary policy targets (opponent's policy) loss
     ])):
   """A config for the model/experiment."""
   pass
@@ -166,7 +169,11 @@ def _init_model_from_config(config):
       config.nn_depth,
       config.weight_decay,
       config.learning_rate,
-      config.path)
+      config.path,
+      # NOTE: for auxiliary policy target
+      config.use_auxiliary_policy_target,
+      config.auxiliary_policy_target_weight,
+      )
 
 
 def watcher(fn):
@@ -218,7 +225,7 @@ def _init_bot(config, game, evaluator_, evaluation):
       dont_return_chance_node=True)
 
 
-def _play_game(logger, game_num, game, bots, temperature, temperature_drop, growing):
+def _play_game(logger, game_num, game, bots, temperature, temperature_drop, growing, use_apt):
   """Play one game, return the trajectory."""
   trajectory = Trajectory()
   actions = []
@@ -257,16 +264,16 @@ def _play_game(logger, game_num, game, bots, temperature, temperature_drop, grow
 
       # NOTE: Calculate target opp policy
       opp_policy = np.zeros(game.num_distinct_actions())
-      best_child = root.best_child()
-      best_child_action = best_child.best_child().action
-      for cc in best_child.children:
-        opp_policy[cc.action] = cc.pruned_explore_count(best_child.explore_count, best_child_action == cc.action)
-      opp_policy = opp_policy**(1 / temperature)
-      opp_policy_sum = opp_policy.sum()
-      if opp_policy_sum == 0:
-        opp_policy[:] = 1/len(opp_policy)
-      else:
-        opp_policy /= opp_policy_sum
+      if use_apt:
+        best_child = root.best_child()
+        if len(best_child.children) != 0:
+          best_child_action = best_child.best_child().action
+          for cc in best_child.children:
+            opp_policy[cc.action] = cc.pruned_explore_count(best_child.explore_count, best_child_action == cc.action)
+          opp_policy = opp_policy**(1 / temperature)
+          opp_policy /= opp_policy.sum()
+        else:
+          opp_policy[:] = 1/len(opp_policy)
       
       observation = state.observation_tensor()
       current_player = state.current_player()
@@ -350,7 +357,8 @@ def actor(*, config, game, logger, queue):
     if not update_checkpoint(logger, queue, model, az_evaluator):
       return
     queue.put(_play_game(logger, game_num, game, bots, config.temperature,
-                         config.temperature_drop, config.growing))
+                         config.temperature_drop, config.growing, 
+                         config.use_auxiliary_policy_target,))
 
 
 @watcher
@@ -391,7 +399,8 @@ def evaluator(*, game, config, logger, queue):
       bots = list(reversed(bots))
 
     trajectory = _play_game(logger, game_num, game, bots, temperature=1,
-                            temperature_drop=0, growing=config.growing)
+                            temperature_drop=0, growing=config.growing, 
+                            use_apt=config.use_auxiliary_policy_target,)
     results.append(trajectory.returns[az_player])
     queue.put((difficulty, trajectory.returns[az_player]))
 
