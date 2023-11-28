@@ -62,13 +62,16 @@ class TrajectoryState(object):
   """A particular point along a trajectory."""
 
   def __init__(self, observation, current_player, legals_mask, action, policy,
-               value):
+               value, opp_policy, opp_legals_mask):
     self.observation = observation
     self.current_player = current_player
     self.legals_mask = legals_mask
     self.action = action
     self.policy = policy
     self.value = value
+    # NOTE: ADD opp_policy
+    self.opp_policy = opp_policy
+    self.opp_legals_mask = opp_legals_mask
 
 
 class Trajectory(object):
@@ -221,20 +224,44 @@ def _play_game(logger, game_num, game, bots, temperature, temperature_drop):
       for c in root.children:
         policy[c.action] = c.explore_count
       policy = policy**(1 / temperature)
+      # print("normal", policy.sum())
       policy /= policy.sum()
       if len(actions) >= temperature_drop:
         action = root.best_child().action
       else:
         action = np.random.choice(len(policy), p=policy)
-      trajectory.states.append(
-          TrajectoryState(state.observation_tensor(), state.current_player(),
-                          state.legal_actions_mask(), action, policy,
-                          root.total_reward / root.explore_count))
+      # NOTE: Calculate target opp policy
+      opp_policy = np.zeros(game.num_distinct_actions())
+      best_child = root.best_child()
+      for cc in best_child.children:
+        opp_policy[cc.action] = cc.explore_count
+      opp_policy = opp_policy**(1 / temperature)
+      opp_policy_sum = opp_policy.sum()
+      if opp_policy_sum == 0:
+        opp_policy[:] = 1/len(opp_policy)
+      else:
+        opp_policy /= opp_policy_sum
+      
+      observation = state.observation_tensor()
+      current_player = state.current_player()
+      legal_actions_mask = state.legal_actions_mask()
+
       action_str = state.action_to_string(state.current_player(), action)
+
+      # NOTE: Add opp_legal_actions_mask
+      state.apply_action(action)
+      opp_legal_actions_mask = state.legal_actions_mask()
+
+      trajectory.states.append(
+          TrajectoryState(observation, current_player,
+                          legal_actions_mask, action, policy,
+                          root.total_reward / root.explore_count,
+                          opp_policy, opp_legal_actions_mask))
+      
       actions.append(action_str)
       logger.opt_print("Player {} sampled action: {}".format(
-          state.current_player(), action_str))
-      state.apply_action(action)
+          current_player, action_str))
+      
   logger.opt_print("Next state:\n{}".format(state))
 
   trajectory.returns = state.returns()
@@ -381,7 +408,7 @@ def learner(*, game, config, actors, evaluators, broadcast_fn, logger):
 
       replay_buffer.extend(
           model_lib.TrainInput(
-              s.observation, s.legals_mask, s.policy, p1_outcome)
+              s.observation, s.legals_mask, s.policy, p1_outcome, s.opp_policy, s.opp_legals_mask)
           for s in trajectory.states)
 
       for stage in range(stage_count):
@@ -407,7 +434,7 @@ def learner(*, game, config, actors, evaluators, broadcast_fn, logger):
     # the actors. It only allows numbers, so use -1 as "latest".
     save_path = model.save_checkpoint(
         step if step % config.checkpoint_freq == 0 else -1)
-    losses = sum(losses, model_lib.Losses(0, 0, 0)) / len(losses)
+    losses = sum(losses, model_lib.Losses(0, 0, 0, 0)) / len(losses)
     logger.print(losses)
     logger.print("Checkpoint saved:", save_path)
     return save_path, losses
@@ -473,6 +500,7 @@ def learner(*, game, config, actors, evaluators, broadcast_fn, logger):
             "policy": losses.policy,
             "value": losses.value,
             "l2reg": losses.l2,
+            "opp_policy": losses.opp,
             "sum": losses.total,
         },
         "cache": {  # Null stats because it's hard to report between processes.

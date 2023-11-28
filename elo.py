@@ -1,9 +1,9 @@
 from collections import OrderedDict
 import random
 
-log = 'battle.log'
+log = 'battle2.log'
 mcts = [2, 5, 10, 30]
-az = [i for i in range(0,570,30)]
+az = [i for i in range(0,1001,50)]
 iterations = 100
 
 class Elo:

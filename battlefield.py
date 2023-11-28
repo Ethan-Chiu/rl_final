@@ -4,13 +4,13 @@ from evaluation import FLAGS
 from absl import app
 import random
 
-game = "ultimate_tic_tac_toe"
-num_matches = 5
-num_games = 5
-directory = "./uttt"
+game = "dots_and_boxes"
+num_matches = 1
+num_games = 10
+directory = "./open_spiel/results/dab/"
 mcts = [2, 5, 10, 30]
-az = [i for i in range(0, 570, 30)]
-log = "battle.log"
+az = [i for i in range(0, 1001, 50)]
+log = "battle2.log"
 
 FLAGS.game = game
 FLAGS.num_games = num_games

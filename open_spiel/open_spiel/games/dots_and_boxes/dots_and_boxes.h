@@ -42,8 +42,8 @@ namespace dots_and_boxes {
 
 // Constants.
 inline constexpr int kNumPlayers = 2;
-inline constexpr int kDefaultNumRows = 2;
-inline constexpr int kDefaultNumCols = 2;
+inline constexpr int kDefaultNumRows = 3;
+inline constexpr int kDefaultNumCols = 3;
 inline constexpr int kMaskSize = 10;
 inline constexpr int kMask = (1 << kMaskSize) - 1;
 inline constexpr bool kDefaultUtilityMargin = false;

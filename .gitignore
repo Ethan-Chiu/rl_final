@@ -70,3 +70,4 @@ results/
 
 # checkpoint
 checkpoints/
+*.log
