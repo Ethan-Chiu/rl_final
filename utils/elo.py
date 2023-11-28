@@ -1,10 +1,10 @@
 from collections import OrderedDict
+import matplotlib.pyplot as plt
 import random
 
-log = 'battle2.log'
-mcts = [2, 5, 10, 30]
-az = [i for i in range(0,1001,50)]
+logs = ['battle18.log', 'battle19.log', 'battle20.log']
 iterations = 100
+visualize = True
 
 class Elo:
     def __init__(self, k):
@@ -31,31 +31,52 @@ class Elo:
         return a, b
 
 
-f = open(log, 'r')
-lines = f.readlines()
+lines = []
+for log in logs:
+    f = open(log, 'r')
+    lines.extend(f.readlines())
 avg = OrderedDict([])	
-for m in mcts:
-    avg["mcts"+str(m)] = 0
-for a in az:
-    avg["az"+str(a)] = 0
 for t in range(iterations):
     random.shuffle(lines)
     elo = Elo(k = 10)
-    for m in mcts:
-        elo.addPlayer("mcts"+str(m))
-    for a in az:
-        elo.addPlayer("az"+str(a))
     for l in lines:
         g = l.split('/')
-        results = eval(g[2])
-        for i in results:
-            elo.game(g[0], g[1], (i+1)/2)
-        g = l.split('/')
+        for gi in g[:2]:
+            if gi not in elo.ratings:
+                elo.addPlayer(gi)
         results = eval(g[2])
         for i in results:
             elo.game(g[0], g[1], (i+1)/2)
     for a in elo.ratings:
-        avg[a] += elo.ratings[a]
+        if a not in avg:
+            avg[a] = elo.ratings[a]/iterations
+        else:
+            avg[a] += elo.ratings[a]/iterations
 avg = OrderedDict([(k,v) for k, v in sorted(avg.items(), key=lambda i: i[1])])
 for l in reversed(list(avg)):
-    print(l, avg[l]/iterations)
+    print(l, avg[l])
+
+if visualize:
+    chart = {}
+    for k in avg.keys():
+        found = False
+        algindex = -1
+        for index, char in enumerate(k):
+            if char.isdigit():
+                if algindex == -1:
+                    algindex = index
+                found = True
+            elif found and not char.isdigit():
+                step = int(k[algindex:index])
+                alg = k[:algindex]
+                name = k[index:]
+                break
+        if name not in chart:
+            chart[name] = [[step], [avg[k]]]
+        else:
+            chart[name][0].append(step)
+            chart[name][1].append(avg[k])
+    for n in chart:
+        x, y = zip(*sorted(zip(chart[n][0], chart[n][1])))
+        plt.plot(x, y)
+    plt.show()
