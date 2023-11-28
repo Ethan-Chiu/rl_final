@@ -35,6 +35,8 @@ flags.DEFINE_integer("uct_c", 2, "UCT's exploration constant.")
 flags.DEFINE_integer("rollout_count", 1, "How many rollouts to do.")
 flags.DEFINE_integer("max_simulations", 30, "How many simulations to run.")
 flags.DEFINE_integer("max_simulations2", 30, "How many simulations to run.")
+flags.DEFINE_string("name", "", "Name of the model.")
+flags.DEFINE_string("name2", "", "Name of the model.")
 flags.DEFINE_integer("num_games", 30, "How many games to play.")
 flags.DEFINE_integer("seed", None, "Seed for the random number generator.")
 flags.DEFINE_bool("random_first", False, "Play the first move randomly.")
@@ -42,6 +44,14 @@ flags.DEFINE_bool("solve", True, "Whether to use MCTS-Solver.")
 flags.DEFINE_bool("quiet", True, "Don't show the moves as they're played.")
 flags.DEFINE_bool("verbose", False, "Show the MCTS stats of possible moves.")
 flags.DEFINE_string("log", "arena.log", "Where to save log.")
+
+flags.DEFINE_bool("pcr", True, "")
+flags.DEFINE_float("pcr_p", 0.25, "")
+flags.DEFINE_float("pcr_f", 0.25, "")
+
+flags.DEFINE_bool("fpptp", True, "")
+flags.DEFINE_float("fpptp_k", 2., "")
+flags.DEFINE_float("fpptp_e", 0.5, "")
 
 FLAGS = flags.FLAGS
 
@@ -77,7 +87,9 @@ def _init_bot(bot_type, game, player_id):
         random_state=rng,
         child_selection_fn=mcts.SearchNode.puct_value,
         solve=FLAGS.solve,
-        verbose=FLAGS.verbose)
+        verbose=FLAGS.verbose,
+        use_playout_cap_randomization = False,
+        use_forced_playouts_and_policy_target_pruning = False,)
   if bot_type == "random":
     return uniform_random.UniformRandomBot(player_id, rng)
   if bot_type == "human":
@@ -177,9 +189,9 @@ def main(argv):
     if FLAGS.player2 == "mcts":
         FLAGS.player2 = "mcts" + str(FLAGS.max_simulations2)
     if FLAGS.player1 == "az":
-        FLAGS.player1 = "az" + str(FLAGS.az_path.split('checkpoint-')[1])
+        FLAGS.player1 = "az" + str(FLAGS.az_path.split('checkpoint-')[1]) + FLAGS.name
     if FLAGS.player2 == "az":
-        FLAGS.player2 = "az" + str(FLAGS.az_path2.split('checkpoint-')[1])
+        FLAGS.player2 = "az" + str(FLAGS.az_path2.split('checkpoint-')[1]) + FLAGS.name2
     for game_num in range(FLAGS.num_games):
         returns, history = _play_game(game, bots, argv[1:])
         histories[" ".join(history)] += 1
