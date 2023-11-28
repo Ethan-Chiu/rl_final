@@ -18,6 +18,7 @@ import math
 import time
 
 import numpy as np
+import random
 
 import pyspiel
 
@@ -102,16 +103,22 @@ class SearchNode(object):
       "action",
       "player",
       "prior",
+      "use_forced_playouts_and_policy_target_pruning",
+      "forced_playouts_and_policy_target_pruning_k",
+      "forced_playouts_and_policy_target_pruning_exponent",
       "explore_count",
       "total_reward",
       "outcome",
       "children",
   ]
 
-  def __init__(self, action, player, prior):
+  def __init__(self, action, player, prior, use_forced_playouts_and_policy_target_pruning, forced_playouts_and_policy_target_pruning_k, forced_playouts_and_policy_target_pruning_exponent):
     self.action = action
     self.player = player
     self.prior = prior
+    self.use_forced_playouts_and_policy_target_pruning = use_forced_playouts_and_policy_target_pruning
+    self.forced_playouts_and_policy_target_pruning_k = forced_playouts_and_policy_target_pruning_k
+    self.forced_playouts_and_policy_target_pruning_exponent = forced_playouts_and_policy_target_pruning_exponent
     self.explore_count = 0
     self.total_reward = 0.0
     self.outcome = None
@@ -132,10 +139,22 @@ class SearchNode(object):
     """Returns the PUCT value of child."""
     if self.outcome is not None:
       return self.outcome[self.player]
+    
+    if self.use_forced_playouts_and_policy_target_pruning and self.explore_count < (self.forced_playouts_and_policy_target_pruning_k * self.prior * parent_explore_count) ** self.forced_playouts_and_policy_target_pruning_exponent:
+      return float("inf")
 
     return ((self.explore_count and self.total_reward / self.explore_count) +
             uct_c * self.prior * math.sqrt(parent_explore_count) /
             (self.explore_count + 1))
+  
+  def pruned_explore_count(self, parent_explore_count, is_best_action):
+    if (not self.use_forced_playouts_and_policy_target_pruning) or is_best_action:
+      return self.explore_count
+    pruned_explore_count = self.explore_count - math.ceil((self.forced_playouts_and_policy_target_pruning_k * self.prior * parent_explore_count) ** self.forced_playouts_and_policy_target_pruning_exponent)
+    if pruned_explore_count <= 1:
+      return 0
+    else:
+      return pruned_explore_count
 
   def sort_key(self):
     """Returns the best action from this node, either proven or most visited.
@@ -200,9 +219,15 @@ class MCTSBot(pyspiel.Bot):
                uct_c,
                max_simulations,
                evaluator,
+               use_playout_cap_randomization,
+               playout_cap_randomization_p,
+               playout_cap_randomization_fraction,
+               use_forced_playouts_and_policy_target_pruning,
+               forced_playouts_and_policy_target_pruning_k,
+               forced_playouts_and_policy_target_pruning_exponent,
                solve=True,
                random_state=None,
-               child_selection_fn=SearchNode.uct_value,
+               child_selection_fn=SearchNode.puct_value,
                dirichlet_noise=None,
                verbose=False,
                dont_return_chance_node=False):
@@ -245,7 +270,13 @@ class MCTSBot(pyspiel.Bot):
 
     self._game = game
     self.uct_c = uct_c
-    self.max_simulations = max_simulations
+    if use_playout_cap_randomization:
+      self.max_simulations = max_simulations if random.random() <= playout_cap_randomization_p else math.ceil(max_simulations * playout_cap_randomization_fraction)
+    else:
+      self.max_simulations = max_simulations
+    self.use_forced_playouts_and_policy_target_pruning = use_forced_playouts_and_policy_target_pruning
+    self.forced_playouts_and_policy_target_pruning_k = forced_playouts_and_policy_target_pruning_k
+    self.forced_playouts_and_policy_target_pruning_exponent = forced_playouts_and_policy_target_pruning_exponent
     self.evaluator = evaluator
     self.verbose = verbose
     self.solve = solve
@@ -322,7 +353,7 @@ class MCTSBot(pyspiel.Bot):
         self._random_state.shuffle(legal_actions)
         player = working_state.current_player()
         current_node.children = [
-            SearchNode(action, player, prior) for action, prior in legal_actions
+            SearchNode(action, player, prior, self.use_forced_playouts_and_policy_target_pruning, self.forced_playouts_and_policy_target_pruning_k, self.forced_playouts_and_policy_target_pruning_exponent) for action, prior in legal_actions
         ]
 
       if working_state.is_chance_node():
@@ -395,7 +426,7 @@ class MCTSBot(pyspiel.Bot):
     Returns:
       The most visited move from the root node.
     """
-    root = SearchNode(None, state.current_player(), 1)
+    root = SearchNode(None, state.current_player(), 1, self.use_forced_playouts_and_policy_target_pruning, self.forced_playouts_and_policy_target_pruning_k, self.forced_playouts_and_policy_target_pruning_exponent)
     for _ in range(self.max_simulations):
       visit_path, working_state = self._apply_tree_policy(root, state)
       if working_state.is_terminal():

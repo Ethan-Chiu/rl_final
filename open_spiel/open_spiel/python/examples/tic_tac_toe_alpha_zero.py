@@ -44,6 +44,13 @@ def main(unused_argv):
       evaluators=2,
       uct_c=1,
       max_simulations=50,
+      # max_steps=30,
+      # checkpoint_freq=2,
+
+      # actors=4,
+      # evaluators=4,
+      # uct_c=1.1,
+      # max_simulations=100,
       policy_alpha=0.25,
       policy_epsilon=0.25,
       temperature=1,
@@ -58,6 +65,14 @@ def main(unused_argv):
       output_size=None,
 
       quiet=True,
+
+      use_playout_cap_randomization = True,
+      playout_cap_randomization_p = 0.25,
+      playout_cap_randomization_fraction = 0.25,
+
+      use_forced_playouts_and_policy_target_pruning = True,
+      forced_playouts_and_policy_target_pruning_k = 2,
+      forced_playouts_and_policy_target_pruning_exponent = 0.5,
   )
   alpha_zero.alpha_zero(config)
 

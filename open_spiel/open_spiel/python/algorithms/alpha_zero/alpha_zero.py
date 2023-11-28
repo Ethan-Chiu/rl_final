@@ -142,6 +142,14 @@ class Config(collections.namedtuple(
         "output_size",
 
         "quiet",
+
+        "use_playout_cap_randomization",
+        "playout_cap_randomization_p",
+        "playout_cap_randomization_fraction",
+
+        "use_forced_playouts_and_policy_target_pruning",
+        "forced_playouts_and_policy_target_pruning_k",
+        "forced_playouts_and_policy_target_pruning_exponent",
     ])):
   """A config for the model/experiment."""
   pass
@@ -195,6 +203,12 @@ def _init_bot(config, game, evaluator_, evaluation):
       config.uct_c,
       config.max_simulations,
       evaluator_,
+      config.use_playout_cap_randomization,
+      config.playout_cap_randomization_p,
+      config.playout_cap_randomization_fraction,
+      config.use_forced_playouts_and_policy_target_pruning,
+      config.forced_playouts_and_policy_target_pruning_k,
+      config.forced_playouts_and_policy_target_pruning_exponent,
       solve=False,
       dirichlet_noise=noise,
       child_selection_fn=mcts.SearchNode.puct_value,
@@ -221,13 +235,14 @@ def _play_game(logger, game_num, game, bots, temperature, temperature_drop):
     else:
       root = bots[state.current_player()].mcts_search(state)
       policy = np.zeros(game.num_distinct_actions())
+      best_action = root.best_child().action
       for c in root.children:
-        policy[c.action] = c.explore_count
+        policy[c.action] = c.pruned_explore_count(root.explore_count, best_action == c.action)
       policy = policy**(1 / temperature)
       # print("normal", policy.sum())
       policy /= policy.sum()
       if len(actions) >= temperature_drop:
-        action = root.best_child().action
+        action = best_action
       else:
         action = np.random.choice(len(policy), p=policy)
       # NOTE: Calculate target opp policy
@@ -330,6 +345,12 @@ def evaluator(*, game, config, logger, queue):
             config.uct_c,
             max_simulations,
             random_evaluator,
+            config.use_playout_cap_randomization,
+            config.playout_cap_randomization_p,
+            config.playout_cap_randomization_fraction,
+            config.use_forced_playouts_and_policy_target_pruning,
+            config.forced_playouts_and_policy_target_pruning_k,
+            config.forced_playouts_and_policy_target_pruning_exponent,
             solve=True,
             verbose=False,
             dont_return_chance_node=True)
