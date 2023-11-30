@@ -68,6 +68,7 @@ def main(unused_argv):
       forced_playouts_and_policy_target_pruning_exponent = 0.5,
 
       growing = 1,
+      fill = 1,
 
       # APT
       use_auxiliary_policy_target=True,
