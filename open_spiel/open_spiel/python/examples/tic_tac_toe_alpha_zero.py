@@ -25,14 +25,14 @@ from absl import flags
 from open_spiel.python.algorithms.alpha_zero import alpha_zero
 from open_spiel.python.utils import spawn
 
-flags.DEFINE_string("path", "/home/howard/RL/final_project/results/test_dots_and_boxes_6*6_5", "Where to save checkpoints.")
+flags.DEFINE_string("path", "/home/howard/RL/final_project/results/test_dots_and_boxes_3*3_all_maxsim100", "Where to save checkpoints.")
 FLAGS = flags.FLAGS
 
 def main(unused_argv):
   config = alpha_zero.Config(
       game="dots_and_boxes",
       path=FLAGS.path,
-      learning_rate=0.001,
+      learning_rate=0.01,
       weight_decay=1e-4,
       train_batch_size=64,
       replay_buffer_size=2**14,
@@ -47,13 +47,13 @@ def main(unused_argv):
       policy_alpha=1,
       policy_epsilon=0.25,
       temperature=1,
-      temperature_drop=24,
+      temperature_drop=4,
       evaluation_window=20,
       eval_levels=18,
 
       nn_model="resnet",
-      nn_width=128,
-      nn_depth=3,
+      nn_width=256,
+      nn_depth=2,
       observation_shape=None,
       output_size=None,
 
