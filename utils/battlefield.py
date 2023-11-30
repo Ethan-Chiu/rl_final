@@ -28,12 +28,10 @@ for m in range(num_matches):
             FLAGS.player2 = "mcts"
             try:
                 app.run(evaluation.main)
-                print("1")
             except Exception as e:
                 print("ERROR")
                 print(e)
                 pass
-            print("2")
             FLAGS.player1 = "mcts"
             FLAGS.player2 = "az"
             try:

@@ -2,16 +2,8 @@ from collections import OrderedDict
 import matplotlib.pyplot as plt
 import random
 
-
-log = '/home/howard/RL/final_project/logs/ttt_pcp_0.25_0.25.log'
-elo_log = '/home/howard/RL/final_project/logs/elo_ttt_pcp_0.25_0.25.log'
-# mcts = [2, 5, 10, 30]
-# az = [i for i in range(0,570,30)]
-mcts = [ 5,10,50,100,1000,10000] # [2, 5, 10, 30, 100]
-az = [i for i in range(0,31,2)]
-
+logs = ['battle15.log']
 logs = ['battle18.log', 'battle19.log', 'battle20.log']
-
 iterations = 100
 visualize = True
 
@@ -62,15 +54,17 @@ for t in range(iterations):
         else:
             avg[a] += elo.ratings[a]/iterations
 avg = OrderedDict([(k,v) for k, v in sorted(avg.items(), key=lambda i: i[1])])
-w = open(elo_log,'w')
 for l in reversed(list(avg)):
     print(l, avg[l])
 
 if visualize:
     chart = {}
+    baselines = {}
+    maxstep = 0
     for k in avg.keys():
         found = False
         algindex = -1
+        name = ""
         for index, char in enumerate(k):
             if char.isdigit():
                 if algindex == -1:
@@ -81,12 +75,21 @@ if visualize:
                 alg = k[:algindex]
                 name = k[index:]
                 break
-        if name not in chart:
-            chart[name] = [[step], [avg[k]]]
         else:
-            chart[name][0].append(step)
+            step = int(k[algindex:])
+            alg = k[:algindex]
+        if alg == "az":
+            if name not in chart:
+                chart[name] = [[step], []]
+            else:
+                chart[name][0].append(step)
             chart[name][1].append(avg[k])
+            maxstep = max(step, maxstep)
+        elif alg == "mcts":
+            baselines[step] = avg[k]
     for n in chart:
         x, y = zip(*sorted(zip(chart[n][0], chart[n][1])))
         plt.plot(x, y)
+    for b in baselines:
+        plt.plot((0, maxstep), (baselines[b], baselines[b]))
     plt.show()
