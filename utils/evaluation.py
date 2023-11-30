@@ -208,8 +208,7 @@ def main(argv):
     f = open(FLAGS.log, 'a')
     f.write(FLAGS.player1 + "/" + FLAGS.player2 + "/" + str(l) + '\n')
     f.close()
-    tf.keras.backend.clear_session()
-    return
+    # tf.keras.backend.clear_session()
     # print("Average return", average_return/FLAGS.num_games)
 
 
