@@ -151,7 +151,7 @@ class Config(collections.namedtuple(
         "forced_playouts_and_policy_target_pruning_k",
         "forced_playouts_and_policy_target_pruning_exponent",
 
-        "growing", # 0: ordinary, 1: reusing simulations for both player(expected fastest), 2: each player has its own simulation history tree
+        "growing", # 0: ordinary, 1: reusing simulations for both player(expected fastest), 2: each player has a tree
         "fill", # 0: constant simulations per action, 1: fill to the max_simulation
 
         "use_auxiliary_policy_target",
