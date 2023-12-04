@@ -25,12 +25,12 @@ from absl import flags
 from open_spiel.python.algorithms.alpha_zero import alpha_zero
 from open_spiel.python.utils import spawn
 
-flags.DEFINE_string("path", "../../../results/test", "Where to save checkpoints.")
+flags.DEFINE_string("path", "../../../results/6x6", "Where to save checkpoints.")
 FLAGS = flags.FLAGS
 
 def main(unused_argv):
   config = alpha_zero.Config(
-      game="tic_tac_toe",
+      game="dots_and_boxes",
       path=FLAGS.path,
       learning_rate=0.01,
       weight_decay=1e-4,
@@ -43,11 +43,11 @@ def main(unused_argv):
       actors=4,
       evaluators=2,
       uct_c=1,
-      max_simulations=100,
+      max_simulations=500,
       policy_alpha=0.25,
       policy_epsilon=0.25,
       temperature=1,
-      temperature_drop=4,
+      temperature_drop=42,
       evaluation_window=100,
       eval_levels=18,
 
