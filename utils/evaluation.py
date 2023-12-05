@@ -1,12 +1,14 @@
 import collections
 import random
 import sys
+import tensorflow as tf
 
 from absl import app
 from absl import flags
 import numpy as np
 
 from open_spiel.python.algorithms import mcts
+from open_spiel.python.algorithms.alpha_zero import azbot
 from open_spiel.python.algorithms.alpha_zero import evaluator as az_evaluator
 from open_spiel.python.algorithms.alpha_zero import model as az_model
 from open_spiel.python.bots import gtp
@@ -22,19 +24,19 @@ _KNOWN_PLAYERS = [
     "az"
 ]
 
-flags.DEFINE_string("game", "tic_tac_toe", "Name of the game.")
-flags.DEFINE_enum("player1", "az", _KNOWN_PLAYERS, "Who controls player 1.")
-flags.DEFINE_enum("player2", "az", _KNOWN_PLAYERS, "Who controls player 2.")
+flags.DEFINE_string("game", "dots_and_boxes", "Name of the game.")
+flags.DEFINE_enum("player1", "mcts", _KNOWN_PLAYERS, "Who controls player 1.")
+flags.DEFINE_enum("player2", "mcts", _KNOWN_PLAYERS, "Who controls player 2.")
 flags.DEFINE_string("gtp_path", None, "Where to find a binary for gtp.")
 flags.DEFINE_multi_string("gtp_cmd", [], "GTP commands to run at init.")
-flags.DEFINE_string("az_path", "./tictactoe/checkpoint-50",
+flags.DEFINE_string("az_path", "../models/test_ttt_setting2/checkpoint-0",
                     "Path to an alpha_zero checkpoint. Needed by an az player.")
-flags.DEFINE_string("az_path2", "./tictactoe/checkpoint-50",
+flags.DEFINE_string("az_path2", "../models/test_ttt_setting2/checkpoint-0",
                     "Path to an alpha_zero checkpoint. Needed by an az player.")
 flags.DEFINE_integer("uct_c", 2, "UCT's exploration constant.")
 flags.DEFINE_integer("rollout_count", 1, "How many rollouts to do.")
-flags.DEFINE_integer("max_simulations", 30, "How many simulations to run.")
-flags.DEFINE_integer("max_simulations2", 30, "How many simulations to run.")
+flags.DEFINE_integer("max_simulations", 100, "How many simulations to run.")
+flags.DEFINE_integer("max_simulations2", 500, "How many simulations to run.")
 flags.DEFINE_string("name", "", "Name of the model.")
 flags.DEFINE_string("name2", "", "Name of the model.")
 flags.DEFINE_integer("num_games", 30, "How many games to play.")
@@ -79,17 +81,9 @@ def _init_bot(bot_type, game, player_id):
     path = FLAGS.az_path if player_id == 0 else FLAGS.az_path2
     model = az_model.Model.from_checkpoint(path)
     evaluator = az_evaluator.AlphaZeroEvaluator(game, model)
-    return mcts.MCTSBot(
+    return mcts.AZBot(
         game,
-        FLAGS.uct_c,
-        30,
-        evaluator,
-        random_state=rng,
-        child_selection_fn=mcts.SearchNode.puct_value,
-        solve=FLAGS.solve,
-        verbose=FLAGS.verbose,
-        use_playout_cap_randomization = False,
-        use_forced_playouts_and_policy_target_pruning = False,)
+        evaluator,)
   if bot_type == "random":
     return uniform_random.UniformRandomBot(player_id, rng)
   if bot_type == "human":
@@ -207,8 +201,10 @@ def main(argv):
     f = open(FLAGS.log, 'a')
     f.write(FLAGS.player1 + "/" + FLAGS.player2 + "/" + str(l) + '\n')
     f.close()
+    # tf.keras.backend.clear_session()
     # print("Average return", average_return/FLAGS.num_games)
 
 
 if __name__ == "__main__":
     app.run(main)
+    print("This line will not be executed.")

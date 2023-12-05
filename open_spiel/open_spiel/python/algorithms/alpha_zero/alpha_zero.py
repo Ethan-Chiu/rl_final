@@ -151,7 +151,8 @@ class Config(collections.namedtuple(
         "forced_playouts_and_policy_target_pruning_k",
         "forced_playouts_and_policy_target_pruning_exponent",
 
-        "growing", # 0: ordinary, 1: reusing simulations for both player(expected fastest), 2: each player has its own simulation history tree
+        "growing", # 0: ordinary, 1: reusing simulations for both player(expected fastest), 2: each player has a tree
+        "fill", # 0: constant simulations per action, 1: fill to the max_simulation
 
         "use_auxiliary_policy_target",
         "auxiliary_policy_target_weight", # weight for auxiliary policy targets (opponent's policy) loss
@@ -225,7 +226,7 @@ def _init_bot(config, game, evaluator_, evaluation):
       dont_return_chance_node=True)
 
 
-def _play_game(logger, game_num, game, bots, temperature, temperature_drop, growing, use_apt):
+def _play_game(logger, game_num, game, bots, temperature, temperature_drop, growing, fill, use_apt):
   """Play one game, return the trajectory."""
   trajectory = Trajectory()
   actions = []
@@ -245,11 +246,11 @@ def _play_game(logger, game_num, game, bots, temperature, temperature_drop, grow
     else:
       player = state.current_player()
       if growing == 2:
-          root = bots[player].mcts_search(state, tree[player])
+          root = bots[player].mcts_search(state, tree[player], fill)
       elif growing == 1:
-          root = bots[player].mcts_search(state, tree[0])
+          root = bots[player].mcts_search(state, tree[0], fill)
       else:
-          root = bots[player].mcts_search(state, None)
+          root = bots[player].mcts_search(state, None, fill)
       policy = np.zeros(game.num_distinct_actions())
       best_action = root.best_child().action
       for c in root.children:
@@ -356,9 +357,9 @@ def actor(*, config, game, logger, queue):
   for game_num in itertools.count():
     if not update_checkpoint(logger, queue, model, az_evaluator):
       return
-    queue.put(_play_game(logger, game_num, game, bots, config.temperature,
-                         config.temperature_drop, config.growing, 
-                         config.use_auxiliary_policy_target,))
+    queue.put(_play_game(logger, game_num, game, bots, temperature=config.temperature,
+                         temperature_drop=config.temperature_drop, growing=config.growing, fill=config.fill,
+                         use_apt=config.use_auxiliary_policy_target,))
 
 
 @watcher
@@ -385,12 +386,12 @@ def evaluator(*, game, config, logger, queue):
             config.uct_c,
             max_simulations,
             random_evaluator,
-            config.use_playout_cap_randomization,
-            config.playout_cap_randomization_p,
-            config.playout_cap_randomization_fraction,
-            config.use_forced_playouts_and_policy_target_pruning,
-            config.forced_playouts_and_policy_target_pruning_k,
-            config.forced_playouts_and_policy_target_pruning_exponent,
+            use_playout_cap_randomization=config.use_playout_cap_randomization,
+            playout_cap_randomization_p=config.playout_cap_randomization_p,
+            playout_cap_randomization_fraction=config.playout_cap_randomization_fraction,
+            use_forced_playouts_and_policy_target_pruning=config.use_forced_playouts_and_policy_target_pruning,
+            forced_playouts_and_policy_target_pruning_k=config.forced_playouts_and_policy_target_pruning_k,
+            forced_playouts_and_policy_target_pruning_exponent=config.forced_playouts_and_policy_target_pruning_exponent,
             solve=True,
             verbose=False,
             dont_return_chance_node=True)
@@ -399,7 +400,7 @@ def evaluator(*, game, config, logger, queue):
       bots = list(reversed(bots))
 
     trajectory = _play_game(logger, game_num, game, bots, temperature=1,
-                            temperature_drop=0, growing=config.growing, 
+                            temperature_drop=0, growing=0, fill=0,
                             use_apt=config.use_auxiliary_policy_target,)
     results.append(trajectory.returns[az_player])
     queue.put((difficulty, trajectory.returns[az_player]))
