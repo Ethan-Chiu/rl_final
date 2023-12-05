@@ -3,8 +3,8 @@ import matplotlib.pyplot as plt
 import random
 
 
-logs = ['/home/howard/RL/final_project/logs/test_dots_and_boxes_3*3_allFalse_maxsim100.log']
-elo_log = '/home/howard/RL/final_project/logs/elo_test_dots_and_boxes_3*3_allFalse_maxsim100.log'
+logs = ['/home/howard/RL/final_project/logs/mcts.log']
+elo_log = '/home/howard/RL/final_project/logs/elo_mcts.log'
 
 # mcts = [2, 5, 10, 30]
 candidate=False
