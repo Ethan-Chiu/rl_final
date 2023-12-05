@@ -81,9 +81,24 @@ def _init_bot(bot_type, game, player_id):
     path = FLAGS.az_path if player_id == 0 else FLAGS.az_path2
     model = az_model.Model.from_checkpoint(path)
     evaluator = az_evaluator.AlphaZeroEvaluator(game, model)
-    return azbot.AZBot(
+    return mcts.MCTSBot(
         game,
-        evaluator,)
+        FLAGS.uct_c,
+        100,
+        evaluator,
+        random_state=rng,
+        child_selection_fn=mcts.SearchNode.puct_value,
+        solve=FLAGS.solve,
+        verbose=FLAGS.verbose,
+        use_playout_cap_randomization = False,
+        use_forced_playouts_and_policy_target_pruning = False,
+        playout_cap_randomization_p = 0.25,
+        playout_cap_randomization_fraction = 0.25,
+        forced_playouts_and_policy_target_pruning_k = 2,
+        forced_playouts_and_policy_target_pruning_exponent = 0.5)
+    # return mcts.AZBot(
+        # game,
+        # evaluator,)
   if bot_type == "random":
     return uniform_random.UniformRandomBot(player_id, rng)
   if bot_type == "human":

@@ -77,6 +77,8 @@ def main(unused_argv):
       # Game branch
       use_game_branch=False,
       game_branch_number=1,
+      game_branch_max_prob=0.5,
+      game_branch_prob_power=4,
   )
   alpha_zero.alpha_zero(config)
   # config = alpha_zero.Config(
