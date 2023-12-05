@@ -151,11 +151,14 @@ class Config(collections.namedtuple(
         "forced_playouts_and_policy_target_pruning_k",
         "forced_playouts_and_policy_target_pruning_exponent",
 
-        "growing", # 0: ordinary, 1: reusing simulations for both player(expected fastest), 2: each player has its own simulation history tree
+        "growing", # 0: ordinary, 1: reusing simulations for both player(expected fastest), 2: each player has a tree
         "fill", # 0: constant simulations per action, 1: fill to the max_simulation
 
         "use_auxiliary_policy_target",
         "auxiliary_policy_target_weight", # weight for auxiliary policy targets (opponent's policy) loss
+
+        "use_game_branch",
+        "game_branch_number",
     ])):
   """A config for the model/experiment."""
   pass
@@ -225,16 +228,42 @@ def _init_bot(config, game, evaluator_, evaluation):
       verbose=False,
       dont_return_chance_node=True)
 
+def _play_game(logger, game_num, game, bots, temperature, temperature_drop, 
+               growing, fill, 
+               use_apt, 
+               use_game_branch, game_len_stat, branch_num) -> list[Trajectory]:
+  # Start a new game
+  init_state = game.new_initial_state()
+  trajectory, branch_states = _play_game_from_state(init_state, logger, game_num, game, bots, temperature, temperature_drop, growing, fill, use_apt, use_game_branch, game_len_stat)
+  trajectory_list: list[Trajectory] = []
+  trajectory_list.append(trajectory)
 
-def _play_game(logger, game_num, game, bots, temperature, temperature_drop, growing, fill, use_apt):
+  # If use game branch, sample some middle states and play on
+  if use_game_branch:
+    sample_count = branch_num if branch_num <= len(branch_states) else len(branch_states)
+    sampled_branch_states = random.sample(branch_states, sample_count)
+    for s in sampled_branch_states:
+      t, _ = _play_game_from_state(s, logger, game_num, game, bots, temperature, temperature_drop, growing, fill, use_apt, False, None)
+      trajectory_list.append(t)
+
+  return trajectory_list
+  
+
+def _play_game_from_state(init_state, logger, game_num, game, bots, temperature, temperature_drop, 
+                          growing, fill, 
+                          use_apt, 
+                          use_game_branch, mean_game_len) -> (Trajectory, list[pyspiel.State]):
   """Play one game, return the trajectory."""
   trajectory = Trajectory()
   actions = []
-  state = game.new_initial_state()
+  state = init_state
   random_state = np.random.RandomState()
   logger.opt_print(" Starting game {} ".format(game_num).center(60, "-"))
   logger.opt_print("Initial state:\n{}".format(state))
   tree = [None] * 2
+  # NOTE: For use game branch
+  branch_states = []
+  current_len = 0
   while not state.is_terminal():
     if state.is_chance_node():
       # For chance nodes, rollout according to chance node's probability
@@ -280,6 +309,7 @@ def _play_game(logger, game_num, game, bots, temperature, temperature_drop, grow
       current_player = state.current_player()
       legal_actions_mask = state.legal_actions_mask()
 
+      # NOTE: growing technique
       if growing == 2:
           for c in root.children:
               if c.action == action:
@@ -303,6 +333,13 @@ def _play_game(logger, game_num, game, bots, temperature, temperature_drop, grow
     
       action_str = state.action_to_string(state.current_player(), action)
 
+      # NOTE: Use game branch 
+      if use_game_branch:
+        p = 0.5 * (current_len / mean_game_len)**4
+        p = p if p < 0.5 else 0.5
+        if random.random() < p:
+          branch_states.append(state.clone())
+
       # NOTE: Add opp_legal_actions_mask
       state.apply_action(action)
       opp_legal_actions_mask = state.legal_actions_mask()
@@ -316,13 +353,14 @@ def _play_game(logger, game_num, game, bots, temperature, temperature_drop, grow
       actions.append(action_str)
       logger.opt_print("Player {} sampled action: {}".format(
           current_player, action_str))
+    current_len += 1
       
   logger.opt_print("Next state:\n{}".format(state))
 
   trajectory.returns = state.returns()
   logger.print("Game {}: Returns: {}; Actions: {}".format(
       game_num, " ".join(map(str, trajectory.returns)), " ".join(actions)))
-  return trajectory
+  return trajectory, branch_states
 
 
 def update_checkpoint(logger, queue, model, az_evaluator):
@@ -354,12 +392,22 @@ def actor(*, config, game, logger, queue):
       _init_bot(config, game, az_evaluator, False),
       _init_bot(config, game, az_evaluator, False),
   ]
+  length_stat = []
+  mean_length = 1
   for game_num in itertools.count():
     if not update_checkpoint(logger, queue, model, az_evaluator):
       return
-    queue.put(_play_game(logger, game_num, game, bots, temperature=config.temperature,
+    trajectories = _play_game(logger, game_num, game, bots, temperature=config.temperature,
                          temperature_drop=config.temperature_drop, growing=config.growing, fill=config.fill,
-                         use_apt=config.use_auxiliary_policy_target,))
+                         use_apt=config.use_auxiliary_policy_target, 
+                         use_game_branch=config.use_game_branch, game_len_stat=mean_length, branch_num=config.game_branch_number)
+    
+    for t in trajectories:
+      queue.put(t)
+
+    # NOTE: stat for game length. only take the first trajectory, since the first trajectory is complete
+    length_stat.append(len(trajectories[0].states))
+    mean_length = sum(length_stat) / len(length_stat)
 
 
 @watcher
@@ -401,7 +449,8 @@ def evaluator(*, game, config, logger, queue):
 
     trajectory = _play_game(logger, game_num, game, bots, temperature=1,
                             temperature_drop=0, growing=0, fill=0,
-                            use_apt=config.use_auxiliary_policy_target,)
+                            use_apt=config.use_auxiliary_policy_target, 
+                            use_game_branch=False, game_len_stat=None, branch_num=None)[0]
     results.append(trajectory.returns[az_player])
     queue.put((difficulty, trajectory.returns[az_player]))
 

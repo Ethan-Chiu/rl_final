@@ -104,10 +104,9 @@ if visualize:
             maxstep = max(step, maxstep)
         elif alg == "mcts":
             baselines[step] = avg[k]
-    print(chart)
     for n in chart:
         x, y = zip(*sorted(zip(chart[n][0], chart[n][1])))
-        plt.plot(x, y, )
+        plt.plot(x, y)
     for b in baselines:
         plt.plot((0, maxstep), (baselines[b], baselines[b]))
     plt.show()

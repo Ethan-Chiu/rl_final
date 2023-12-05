@@ -8,6 +8,7 @@ from absl import flags
 import numpy as np
 
 from open_spiel.python.algorithms import mcts
+from open_spiel.python.algorithms.alpha_zero import azbot
 from open_spiel.python.algorithms.alpha_zero import evaluator as az_evaluator
 from open_spiel.python.algorithms.alpha_zero import model as az_model
 from open_spiel.python.bots import gtp
@@ -80,17 +81,9 @@ def _init_bot(bot_type, game, player_id):
     path = FLAGS.az_path if player_id == 0 else FLAGS.az_path2
     model = az_model.Model.from_checkpoint(path)
     evaluator = az_evaluator.AlphaZeroEvaluator(game, model)
-    return mcts.MCTSBot(
+    return azbot.AZBot(
         game,
-        FLAGS.uct_c,
-        100,
-        evaluator,
-        random_state=rng,
-        child_selection_fn=mcts.SearchNode.puct_value,
-        solve=FLAGS.solve,
-        verbose=FLAGS.verbose,
-        use_playout_cap_randomization = False,
-        use_forced_playouts_and_policy_target_pruning = False,)
+        evaluator,)
   if bot_type == "random":
     return uniform_random.UniformRandomBot(player_id, rng)
   if bot_type == "human":
