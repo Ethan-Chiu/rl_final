@@ -34,16 +34,16 @@ def main(unused_argv):
       path=FLAGS.path,
       learning_rate=0.01,
       weight_decay=1e-4,
-      train_batch_size=128,
+      train_batch_size=64,
       replay_buffer_size=2**14,
-      replay_buffer_reuse=4,
+      replay_buffer_reuse=10,
       max_steps=1000,
       checkpoint_freq=10,
 
       actors=4,
-      evaluators=2,
+      evaluators=0,
       uct_c=1,
-      max_simulations=500,
+      max_simulations=600,
       policy_alpha=0.25,
       policy_epsilon=0.25,
       temperature=1,
@@ -68,6 +68,7 @@ def main(unused_argv):
       forced_playouts_and_policy_target_pruning_exponent = 0.5,
 
       growing = 1,
+      fill = 1,
 
       # APT
       use_auxiliary_policy_target=True,

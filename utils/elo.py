@@ -2,6 +2,7 @@ from collections import OrderedDict
 import matplotlib.pyplot as plt
 import random
 
+logs = ['battle15.log']
 logs = ['battle18.log', 'battle19.log', 'battle20.log']
 iterations = 100
 visualize = True
@@ -58,9 +59,12 @@ for l in reversed(list(avg)):
 
 if visualize:
     chart = {}
+    baselines = {}
+    maxstep = 0
     for k in avg.keys():
         found = False
         algindex = -1
+        name = ""
         for index, char in enumerate(k):
             if char.isdigit():
                 if algindex == -1:
@@ -71,12 +75,21 @@ if visualize:
                 alg = k[:algindex]
                 name = k[index:]
                 break
-        if name not in chart:
-            chart[name] = [[step], [avg[k]]]
         else:
-            chart[name][0].append(step)
+            step = int(k[algindex:])
+            alg = k[:algindex]
+        if alg == "az":
+            if name not in chart:
+                chart[name] = [[step], []]
+            else:
+                chart[name][0].append(step)
             chart[name][1].append(avg[k])
+            maxstep = max(step, maxstep)
+        elif alg == "mcts":
+            baselines[step] = avg[k]
     for n in chart:
         x, y = zip(*sorted(zip(chart[n][0], chart[n][1])))
         plt.plot(x, y)
+    for b in baselines:
+        plt.plot((0, maxstep), (baselines[b], baselines[b]))
     plt.show()
