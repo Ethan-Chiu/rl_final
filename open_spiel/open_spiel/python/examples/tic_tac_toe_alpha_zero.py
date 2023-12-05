@@ -25,7 +25,8 @@ from absl import flags
 from open_spiel.python.algorithms.alpha_zero import alpha_zero
 from open_spiel.python.utils import spawn
 
-flags.DEFINE_string("path", "/home/howard/RL/final_project/results/test_dots_and_boxes_3*3_all_maxsim100", "Where to save checkpoints.")
+# flags.DEFINE_string("path", "/home/howard/RL/final_project/results/test_dots_and_boxes_3*3_all_maxsim100", "Where to save checkpoints.")
+flags.DEFINE_string("path", "../../../results/test", "Where to save checkpoints.")
 FLAGS = flags.FLAGS
 
 def main(unused_argv):
