@@ -250,7 +250,11 @@ def _play_game(logger, game_num, game, bots, temperature, temperature_drop,
     sample_count = branch_num if branch_num <= branch_states_count else branch_states_count
     sampled_branch_states = random.sample(branch_states, sample_count)
     for s in sampled_branch_states:
-      t, _ = _play_game_from_state(s, logger, game_num, game, bots, temperature, temperature_drop, 
+      bs = s[0]
+      alt_action = s[2]
+      logger.print("Taken action {} instead of best action {}".format(bs.action_to_string(bs.current_player(), alt_action), bs.action_to_string(bs.current_player(), s[1])))
+      bs.apply_action(alt_action)
+      t, _ = _play_game_from_state(bs, logger, game_num, game, bots, temperature, temperature_drop, 
                                    growing, fill, 
                                    use_apt, 
                                    False, None, 0, 0)
@@ -262,7 +266,7 @@ def _play_game(logger, game_num, game, bots, temperature, temperature_drop,
 def _play_game_from_state(init_state, logger, game_num, game, bots, temperature, temperature_drop, 
                           growing, fill, 
                           use_apt, 
-                          use_game_branch, mean_game_len, game_branch_max_prob, game_branch_prob_power) -> (Trajectory, list[pyspiel.State]):
+                          use_game_branch, mean_game_len, game_branch_max_prob, game_branch_prob_power) -> (Trajectory, list[tuple[pyspiel.State, ...]]):
   """Play one game, return the trajectory."""
   trajectory = Trajectory()
   actions = []
@@ -348,7 +352,17 @@ def _play_game_from_state(init_state, logger, game_num, game, bots, temperature,
         p = game_branch_max_prob * (current_len / mean_game_len)**game_branch_prob_power
         p = p if p < game_branch_max_prob else game_branch_max_prob
         if random.random() < p:
-          branch_states.append(state.clone())
+          clone_state = state.clone()
+          policy_without_best = policy
+          policy_without_best[best_action] = 0.0
+          sum = policy_without_best.sum()
+          # print("debug", sum)
+          if not sum == 0:
+            policy_without_best /= sum
+            alt_action = np.random.choice(len(policy_without_best), p=policy_without_best)
+          else:
+            alt_action = best_action
+          branch_states.append((clone_state, action, alt_action))
 
       # NOTE: Add opp_legal_actions_mask
       state.apply_action(action)
@@ -413,7 +427,8 @@ def actor(*, config, game, logger, queue):
                          use_game_branch=config.use_game_branch, game_len_stat=mean_length, branch_num=config.game_branch_number, game_branch_max_prob=config.game_branch_max_prob, game_branch_prob_power=config.game_branch_prob_power)
     
     for t in trajectories:
-      queue.put(t)
+      if len(t.states) > 0:
+        queue.put(t)
 
     # NOTE: stat for game length. only take the first trajectory, since the first trajectory is complete
     length_stat.append(len(trajectories[0].states))
