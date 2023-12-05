@@ -25,16 +25,16 @@ from absl import flags
 from open_spiel.python.algorithms.alpha_zero import alpha_zero
 from open_spiel.python.utils import spawn
 
-flags.DEFINE_string("path", "/home/howard/RL/final_project/results/test_dots_and_boxes_3*3_all_maxsim100", "Where to save checkpoints.")
+flags.DEFINE_string("path", "/home/howard/RL/final_project/results/test_dots_and_boxes_3*3_allFalse_1_maxsim100", "Where to save checkpoints.")
 FLAGS = flags.FLAGS
 
 def main(unused_argv):
   config = alpha_zero.Config(
       game="dots_and_boxes",
       path=FLAGS.path,
-      learning_rate=0.01,
+      learning_rate=0.001,
       weight_decay=1e-4,
-      train_batch_size=64,
+      train_batch_size=128,
       replay_buffer_size=2**14,
       replay_buffer_reuse=10,
       max_steps=1000,
@@ -47,7 +47,7 @@ def main(unused_argv):
       policy_alpha=1,
       policy_epsilon=0.25,
       temperature=1,
-      temperature_drop=4,
+      temperature_drop=12,
       evaluation_window=20,
       eval_levels=18,
 
@@ -59,22 +59,68 @@ def main(unused_argv):
 
       quiet=True,
 
-      use_playout_cap_randomization = True,
+      use_playout_cap_randomization = False,
       playout_cap_randomization_p = 0.25,
       playout_cap_randomization_fraction = 0.25,
 
-      use_forced_playouts_and_policy_target_pruning = True,
+      use_forced_playouts_and_policy_target_pruning = False,
       forced_playouts_and_policy_target_pruning_k = 2,
       forced_playouts_and_policy_target_pruning_exponent = 0.5,
 
-      growing = 1,
+      growing = 0,
       fill = 1,
 
       # APT
-      use_auxiliary_policy_target=True,
+      use_auxiliary_policy_target=False,
       auxiliary_policy_target_weight= 0.15,
   )
   alpha_zero.alpha_zero(config)
+  # config = alpha_zero.Config(
+  #     game="dots_and_boxes",
+  #     path=FLAGS.path,
+  #     learning_rate=0.01,
+  #     weight_decay=1e-4,
+  #     train_batch_size=64,
+  #     replay_buffer_size=2**14,
+  #     replay_buffer_reuse=10,
+  #     max_steps=1000,
+  #     checkpoint_freq=10,
+
+  #     actors=4,
+  #     evaluators=0,
+  #     uct_c=1,
+  #     max_simulations=100,
+  #     policy_alpha=1,
+  #     policy_epsilon=0.25,
+  #     temperature=1,
+  #     temperature_drop=4,
+  #     evaluation_window=20,
+  #     eval_levels=18,
+
+  #     nn_model="resnet",
+  #     nn_width=256,
+  #     nn_depth=2,
+  #     observation_shape=None,
+  #     output_size=None,
+
+  #     quiet=True,
+
+  #     use_playout_cap_randomization = False,
+  #     playout_cap_randomization_p = 0.25,
+  #     playout_cap_randomization_fraction = 0.25,
+
+  #     use_forced_playouts_and_policy_target_pruning = False,
+  #     forced_playouts_and_policy_target_pruning_k = 2,
+  #     forced_playouts_and_policy_target_pruning_exponent = 0.5,
+
+  #     growing = 0,
+  #     fill = 1,
+
+  #     # APT
+  #     use_auxiliary_policy_target=False,
+  #     auxiliary_policy_target_weight= 0.15,
+  # )
+  # alpha_zero.alpha_zero(config)
 
 
 if __name__ == "__main__":
