@@ -159,6 +159,8 @@ class Config(collections.namedtuple(
 
         "use_game_branch",
         "game_branch_number",
+        "game_branch_max_prob",
+        "game_branch_prob_power",
     ])):
   """A config for the model/experiment."""
   pass
@@ -231,19 +233,27 @@ def _init_bot(config, game, evaluator_, evaluation):
 def _play_game(logger, game_num, game, bots, temperature, temperature_drop, 
                growing, fill, 
                use_apt, 
-               use_game_branch, game_len_stat, branch_num) -> list[Trajectory]:
+               use_game_branch, game_len_stat, branch_num, game_branch_max_prob, game_branch_prob_power) -> list[Trajectory]:
   # Start a new game
   init_state = game.new_initial_state()
-  trajectory, branch_states = _play_game_from_state(init_state, logger, game_num, game, bots, temperature, temperature_drop, growing, fill, use_apt, use_game_branch, game_len_stat)
+  trajectory, branch_states = _play_game_from_state(init_state, logger, game_num, game, bots, temperature, temperature_drop, 
+                                                    growing, fill,
+                                                    use_apt, 
+                                                    use_game_branch, game_len_stat, game_branch_max_prob, game_branch_prob_power)
   trajectory_list: list[Trajectory] = []
   trajectory_list.append(trajectory)
 
   # If use game branch, sample some middle states and play on
   if use_game_branch:
-    sample_count = branch_num if branch_num <= len(branch_states) else len(branch_states)
+    branch_states_count = len(branch_states)
+    logger.print("Branch game, Total branch count: {};".format(branch_states_count))
+    sample_count = branch_num if branch_num <= branch_states_count else branch_states_count
     sampled_branch_states = random.sample(branch_states, sample_count)
     for s in sampled_branch_states:
-      t, _ = _play_game_from_state(s, logger, game_num, game, bots, temperature, temperature_drop, growing, fill, use_apt, False, None)
+      t, _ = _play_game_from_state(s, logger, game_num, game, bots, temperature, temperature_drop, 
+                                   growing, fill, 
+                                   use_apt, 
+                                   False, None, 0, 0)
       trajectory_list.append(t)
 
   return trajectory_list
@@ -252,7 +262,7 @@ def _play_game(logger, game_num, game, bots, temperature, temperature_drop,
 def _play_game_from_state(init_state, logger, game_num, game, bots, temperature, temperature_drop, 
                           growing, fill, 
                           use_apt, 
-                          use_game_branch, mean_game_len) -> (Trajectory, list[pyspiel.State]):
+                          use_game_branch, mean_game_len, game_branch_max_prob, game_branch_prob_power) -> (Trajectory, list[pyspiel.State]):
   """Play one game, return the trajectory."""
   trajectory = Trajectory()
   actions = []
@@ -335,8 +345,8 @@ def _play_game_from_state(init_state, logger, game_num, game, bots, temperature,
 
       # NOTE: Use game branch 
       if use_game_branch:
-        p = 0.5 * (current_len / mean_game_len)**4
-        p = p if p < 0.5 else 0.5
+        p = game_branch_max_prob * (current_len / mean_game_len)**game_branch_prob_power
+        p = p if p < game_branch_max_prob else game_branch_max_prob
         if random.random() < p:
           branch_states.append(state.clone())
 
@@ -400,7 +410,7 @@ def actor(*, config, game, logger, queue):
     trajectories = _play_game(logger, game_num, game, bots, temperature=config.temperature,
                          temperature_drop=config.temperature_drop, growing=config.growing, fill=config.fill,
                          use_apt=config.use_auxiliary_policy_target, 
-                         use_game_branch=config.use_game_branch, game_len_stat=mean_length, branch_num=config.game_branch_number)
+                         use_game_branch=config.use_game_branch, game_len_stat=mean_length, branch_num=config.game_branch_number, game_branch_max_prob=config.game_branch_max_prob, game_branch_prob_power=config.game_branch_prob_power)
     
     for t in trajectories:
       queue.put(t)
@@ -450,7 +460,7 @@ def evaluator(*, game, config, logger, queue):
     trajectory = _play_game(logger, game_num, game, bots, temperature=1,
                             temperature_drop=0, growing=0, fill=0,
                             use_apt=config.use_auxiliary_policy_target, 
-                            use_game_branch=False, game_len_stat=None, branch_num=None)[0]
+                            use_game_branch=False, game_len_stat=None, branch_num=None, game_branch_max_prob=None, game_branch_prob_power=None)[0]
     results.append(trajectory.returns[az_player])
     queue.put((difficulty, trajectory.returns[az_player]))
 
