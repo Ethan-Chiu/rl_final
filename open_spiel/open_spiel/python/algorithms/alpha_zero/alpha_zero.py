@@ -233,7 +233,7 @@ def _init_bot(config, game, evaluator_, evaluation):
 def _play_game(logger, game_num, game, bots, temperature, temperature_drop, 
                growing, fill, 
                use_apt, 
-               use_game_branch, game_len_stat, branch_num, game_branch_max_prob, game_branch_prob_power) -> list[Trajectory]:
+               use_game_branch, game_len_stat, branch_num, game_branch_max_prob, game_branch_prob_power):
   # Start a new game
   init_state = game.new_initial_state()
   trajectory, branch_states = _play_game_from_state(init_state, logger, game_num, game, bots, temperature, temperature_drop, 
@@ -266,7 +266,7 @@ def _play_game(logger, game_num, game, bots, temperature, temperature_drop,
 def _play_game_from_state(init_state, logger, game_num, game, bots, temperature, temperature_drop, 
                           growing, fill, 
                           use_apt, 
-                          use_game_branch, mean_game_len, game_branch_max_prob, game_branch_prob_power) -> (Trajectory, list[tuple[pyspiel.State, ...]]):
+                          use_game_branch, mean_game_len, game_branch_max_prob, game_branch_prob_power):
   """Play one game, return the trajectory."""
   trajectory = Trajectory()
   actions = []
