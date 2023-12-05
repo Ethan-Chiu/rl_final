@@ -156,6 +156,9 @@ class Config(collections.namedtuple(
 
         "use_auxiliary_policy_target",
         "auxiliary_policy_target_weight", # weight for auxiliary policy targets (opponent's policy) loss
+
+        "use_game_branch",
+        "game_branch_number",
     ])):
   """A config for the model/experiment."""
   pass
@@ -397,7 +400,7 @@ def actor(*, config, game, logger, queue):
     trajectories = _play_game(logger, game_num, game, bots, temperature=config.temperature,
                          temperature_drop=config.temperature_drop, growing=config.growing, fill=config.fill,
                          use_apt=config.use_auxiliary_policy_target, 
-                         use_game_branch=True, game_len_stat=mean_length, branch_num=1) # TODO: configurable 
+                         use_game_branch=config.use_game_branch, game_len_stat=mean_length, branch_num=config.game_branch_number)
     
     for t in trajectories:
       queue.put(t)

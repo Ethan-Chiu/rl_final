@@ -74,6 +74,10 @@ def main(unused_argv):
       # APT
       use_auxiliary_policy_target=True,
       auxiliary_policy_target_weight= 0.15,
+
+      # Game branch
+      use_game_branch=False,
+      game_branch_number=1,
   )
   alpha_zero.alpha_zero(config)
 
