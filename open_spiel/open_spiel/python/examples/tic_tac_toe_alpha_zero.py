@@ -30,25 +30,25 @@ FLAGS = flags.FLAGS
 
 def main(unused_argv):
   config = alpha_zero.Config(
-      game="tic_tac_toe",
+      game="dots_and_boxes",
       path=FLAGS.path,
       learning_rate=0.01,
       weight_decay=1e-4,
-      train_batch_size=128,
+      train_batch_size=64,
       replay_buffer_size=2**14,
-      replay_buffer_reuse=4,
+      replay_buffer_reuse=10,
       max_steps=1000,
       checkpoint_freq=10,
 
       actors=4,
-      evaluators=2,
+      evaluators=0,
       uct_c=1,
-      max_simulations=100,
-      policy_alpha=0.25,
+      max_simulations=200,
+      policy_alpha=1,
       policy_epsilon=0.25,
       temperature=1,
-      temperature_drop=4,
-      evaluation_window=100,
+      temperature_drop=24,
+      evaluation_window=20,
       eval_levels=18,
 
       nn_model="resnet",

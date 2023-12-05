@@ -7,10 +7,10 @@ import random
 game = "dots_and_boxes"
 num_matches = 1
 num_games = 10
-directory = "./open_spiel/results/dab/"
+directory = "../open_spiel/results/dab6_2xMaxSim_Apt"
 mcts = [2, 5, 10, 30]
-az = [i for i in range(0, 1001, 50)]
-log = "battle2.log"
+az = [i for i in range(340, 341, 50)]
+log = "test.log"
 
 FLAGS.game = game
 FLAGS.num_games = num_games
@@ -26,11 +26,11 @@ for m in range(num_matches):
             FLAGS.player2 = "mcts"
             try:
                 app.run(evaluation.main)
-            except:
-                pass
+            except Exception as error:
+                print("An error occurred:", error) 
             FLAGS.player1 = "mcts"
             FLAGS.player2 = "az"
             try:
                 app.run(evaluation.main)
-            except:
-                pass
+            except Exception as error:
+                print("An error occurred:", error) 

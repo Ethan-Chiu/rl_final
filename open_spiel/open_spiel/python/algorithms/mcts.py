@@ -311,6 +311,9 @@ class MCTSBot(pyspiel.Bot):
         print(best.children_str(chosen_state))
 
     mcts_action = best.action
+    # if hasattr(self.evaluator, "evaluate_policy"):
+    #   pa = self.evaluator.evaluate_policy(state)
+    #   print("pa", pa, "ba", mcts_action)
 
     policy = [(action, (1.0 if action == mcts_action else 0.0))
               for action in state.legal_actions(state.current_player())]
