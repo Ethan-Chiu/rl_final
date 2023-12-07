@@ -85,7 +85,7 @@ def _init_bot(bot_type, game, player_id):
     return mcts.MCTSBot(
         game,
         FLAGS.uct_c,
-        10,
+        100,
         evaluator,
         random_state=rng,
         child_selection_fn=mcts.SearchNode.puct_value,
