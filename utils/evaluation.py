@@ -1,7 +1,6 @@
 import collections
 import random
 import sys
-import tensorflow as tf
 
 from absl import app
 from absl import flags
@@ -10,10 +9,11 @@ import numpy as np
 from open_spiel.python.algorithms import mcts
 from open_spiel.python.algorithms.alpha_zero import azbot
 from open_spiel.python.algorithms.alpha_zero import evaluator as az_evaluator
-from open_spiel.python.algorithms.alpha_zero import model as az_model
+from open_spiel.python.algorithms.alpha_zero import model_og as az_model
 from open_spiel.python.bots import gtp
 from open_spiel.python.bots import human
 from open_spiel.python.bots import uniform_random
+from open_spiel.python.utils import spawn
 import pyspiel
 
 _KNOWN_PLAYERS = [
@@ -24,19 +24,19 @@ _KNOWN_PLAYERS = [
     "az"
 ]
 
-flags.DEFINE_string("game", "dots_and_boxes", "Name of the game.")
-flags.DEFINE_enum("player1", "mcts", _KNOWN_PLAYERS, "Who controls player 1.")
-flags.DEFINE_enum("player2", "mcts", _KNOWN_PLAYERS, "Who controls player 2.")
+flags.DEFINE_string("game", "tic_tac_toe", "Name of the game.")
+flags.DEFINE_enum("player1", "az", _KNOWN_PLAYERS, "Who controls player 1.")
+flags.DEFINE_enum("player2", "az", _KNOWN_PLAYERS, "Who controls player 2.")
 flags.DEFINE_string("gtp_path", None, "Where to find a binary for gtp.")
 flags.DEFINE_multi_string("gtp_cmd", [], "GTP commands to run at init.")
-flags.DEFINE_string("az_path", "../models/test_ttt_setting2/checkpoint-0",
+flags.DEFINE_string("az_path", "./tictactoe/checkpoint-50",
                     "Path to an alpha_zero checkpoint. Needed by an az player.")
-flags.DEFINE_string("az_path2", "../models/test_ttt_setting2/checkpoint-0",
+flags.DEFINE_string("az_path2", "./tictactoe/checkpoint-50",
                     "Path to an alpha_zero checkpoint. Needed by an az player.")
 flags.DEFINE_integer("uct_c", 2, "UCT's exploration constant.")
 flags.DEFINE_integer("rollout_count", 1, "How many rollouts to do.")
-flags.DEFINE_integer("max_simulations", 100, "How many simulations to run.")
-flags.DEFINE_integer("max_simulations2", 500, "How many simulations to run.")
+flags.DEFINE_integer("max_simulations", 30, "How many simulations to run.")
+flags.DEFINE_integer("max_simulations2", 30, "How many simulations to run.")
 flags.DEFINE_string("name", "", "Name of the model.")
 flags.DEFINE_string("name2", "", "Name of the model.")
 flags.DEFINE_integer("num_games", 30, "How many games to play.")
@@ -46,6 +46,7 @@ flags.DEFINE_bool("solve", True, "Whether to use MCTS-Solver.")
 flags.DEFINE_bool("quiet", True, "Don't show the moves as they're played.")
 flags.DEFINE_bool("verbose", False, "Show the MCTS stats of possible moves.")
 flags.DEFINE_string("log", "arena.log", "Where to save log.")
+flags.DEFINE_integer("num_actors", 1, "How many actors to play.")
 
 flags.DEFINE_bool("pcr", True, "")
 flags.DEFINE_float("pcr_p", 0.25, "")
@@ -84,7 +85,7 @@ def _init_bot(bot_type, game, player_id):
     return mcts.MCTSBot(
         game,
         FLAGS.uct_c,
-        100,
+        10,
         evaluator,
         random_state=rng,
         child_selection_fn=mcts.SearchNode.puct_value,
@@ -96,7 +97,7 @@ def _init_bot(bot_type, game, player_id):
         playout_cap_randomization_fraction = 0.25,
         forced_playouts_and_policy_target_pruning_k = 2,
         forced_playouts_and_policy_target_pruning_exponent = 0.5)
-    # return mcts.AZBot(
+    # return azbot.AZBot(
         # game,
         # evaluator,)
   if bot_type == "random":
@@ -181,6 +182,41 @@ def _play_game(game, bots, initial_actions):
 
   return returns, history
 
+def actor(*, game, queue):
+    bots = [
+        _init_bot(FLAGS.player1, game, 0),
+        _init_bot(FLAGS.player2, game, 1),
+    ]
+    l = []
+    overall_wins = np.zeros((3))
+    for game_num in range(FLAGS.num_games):
+        returns, history = _play_game(game, bots, [])
+        if returns[0] > 0:
+            overall_wins[0] += 1
+        elif returns[0] < 0:
+            overall_wins[1] += 1
+        elif returns[0] == 0:
+            overall_wins[2] += 1
+        l.append(returns[0])
+    queue.put(overall_wins)
+
+def parallel(argv):
+    game = pyspiel.load_game(FLAGS.game)
+    actors = [spawn.Process(actor, kwargs={"game":game}) for i in range(FLAGS.num_actors)]
+    overall = np.zeros((3))
+    for proc in actors:
+      p = proc.queue.get()
+      overall += p
+      proc.join(0.1)
+    if FLAGS.player1 == "mcts":
+        player1 = "mcts" + str(FLAGS.max_simulations)
+    if FLAGS.player2 == "mcts":
+        player2 = "mcts" + str(FLAGS.max_simulations2)
+    if FLAGS.player1 == "az":
+        player1 = "az" + str(FLAGS.az_path.split('checkpoint-')[1]) + FLAGS.name
+    if FLAGS.player2 == "az":
+        player2 = "az" + str(FLAGS.az_path2.split('checkpoint-')[1]) + FLAGS.name2
+    print(player1, "v.s.", player2, "results", overall)
 
 def main(argv):
     game = pyspiel.load_game(FLAGS.game)
@@ -219,7 +255,5 @@ def main(argv):
     # tf.keras.backend.clear_session()
     # print("Average return", average_return/FLAGS.num_games)
 
-
 if __name__ == "__main__":
     app.run(main)
-    print("This line will not be executed.")

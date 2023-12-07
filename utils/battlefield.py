@@ -4,39 +4,33 @@ from evaluation import FLAGS
 from absl import app
 import random
 
-# game = "tic_tac_toe"
 game = "dots_and_boxes"
-num_matches = 1
+num_matches = 10
 num_games = 10
-mcts = [2, 5, 10, 30]
-az = [i for i in range(340, 341, 50)]
-
-directory = "../open_spiel/results/dab6_2xMaxSim_Apt"
-log = "test.log"
-
-# "/home/howard/RL/final_project/models/base"
-# directory = "/home/howard/RL/final_project/results/test_dots_and_boxes_3*3_all_maxsim100"
-# log = "/home/howard/RL/final_project/logs/test_dots_and_boxes_3*3_all_maxsim100.log"
+directory = "./dab/0505"
+mcts = [1000]
+az = [100]
+log = "battle.log"
 
 FLAGS.game = game
 FLAGS.num_games = num_games
 FLAGS.log = log
-for m in range(num_matches):
-    for a in az:
-        for m in mcts:
-            FLAGS.az_path = directory + "/checkpoint-" + str(a)
-            FLAGS.az_path2 = directory + "/checkpoint-" + str(a)
-            FLAGS.max_simulations = m
-            FLAGS.max_simulations2 = m
-            FLAGS.player1 = "az"
-            FLAGS.player2 = "mcts"
-            try:
-                app.run(evaluation.main)
-            except Exception as error:
-                print("An error occurred:", error) 
-            FLAGS.player1 = "mcts"
-            FLAGS.player2 = "az"
-            try:
-                app.run(evaluation.main)
-            except Exception as error:
-                print("An error occurred:", error) 
+FLAGS.num_actors = num_matches
+for a in az:
+    for m in mcts:
+        FLAGS.az_path = directory + "/checkpoint-" + str(a)
+        FLAGS.az_path2 = directory + "/checkpoint-" + str(a)
+        FLAGS.max_simulations = m
+        FLAGS.max_simulations2 = m
+        FLAGS.player1 = "az"
+        FLAGS.player2 = "mcts"
+        try:
+            app.run(evaluation.parallel)
+        except:
+            pass
+        FLAGS.player1 = "mcts"
+        FLAGS.player2 = "az"
+        try:
+            app.run(evaluation.parallel)
+        except:
+            pass
