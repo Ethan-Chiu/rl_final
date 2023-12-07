@@ -4,15 +4,15 @@ from evaluation import FLAGS
 from absl import app
 import random
 
-# game = "tic_tac_toe"
+
 game = "dots_and_boxes"
-num_matches = 20
-num_games = 5
-# "/home/howard/RL/final_project/models/base"
-directory = "/home/howard/RL/final_project/results/test_dots_and_boxes_3*3_all_maxsim100"
-mcts = [10000] # [2, 5, 10, 30, 100]
-az = [i for i in range(1000,1001,10)]
-log = "/home/howard/RL/final_project/logs/test_dots_and_boxes_3*3_all_maxsim100.log"
+num_matches = 1
+num_games = 1000
+
+directory = "/results/3x3"
+mcts = [1000] # [2, 5, 10, 30, 100]
+az = [i for i in range(100,101,100)]
+log = "/results/3x3.log"
 
 FLAGS.game = game
 FLAGS.num_games = num_games

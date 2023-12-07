@@ -81,9 +81,21 @@ def _init_bot(bot_type, game, player_id):
     path = FLAGS.az_path if player_id == 0 else FLAGS.az_path2
     model = az_model.Model.from_checkpoint(path)
     evaluator = az_evaluator.AlphaZeroEvaluator(game, model)
-    return mcts.AZBot(
+    return mcts.MCTSBot(
         game,
-        evaluator,)
+        FLAGS.uct_c,
+        100,
+        evaluator,
+        random_state=rng,
+        child_selection_fn=mcts.SearchNode.puct_value,
+        solve=FLAGS.solve,
+        verbose=FLAGS.verbose,
+        use_playout_cap_randomization = False,
+        use_forced_playouts_and_policy_target_pruning = False,
+        playout_cap_randomization_p = 0.25,
+        playout_cap_randomization_fraction = 0.25,
+        forced_playouts_and_policy_target_pruning_k = 2,
+        forced_playouts_and_policy_target_pruning_exponent = 0.5)
   if bot_type == "random":
     return uniform_random.UniformRandomBot(player_id, rng)
   if bot_type == "human":
@@ -196,12 +208,13 @@ def main(argv):
             overall_wins[1] += 1
         elif returns[0] == 0:
             overall_wins[2] += 1
+        print(FLAGS.player1, "v.s.", FLAGS.player2, "results", overall_wins)
         l.append(returns[0])
-    print(FLAGS.player1, "v.s.", FLAGS.player2, "results", overall_wins)
+    # print(FLAGS.player1, "v.s.", FLAGS.player2, "results", overall_wins)
     f = open(FLAGS.log, 'a')
     f.write(FLAGS.player1 + "/" + FLAGS.player2 + "/" + str(l) + '\n')
     f.close()
-    # tf.keras.backend.clear_session()
+    tf.keras.backend.clear_session()
     # print("Average return", average_return/FLAGS.num_games)
 
 
