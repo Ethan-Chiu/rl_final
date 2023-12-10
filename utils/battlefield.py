@@ -7,12 +7,13 @@ import random
 # game = "tic_tac_toe"
 game = "dots_and_boxes"
 num_matches = 1
-num_games = 10
-mcts = [2, 5, 10, 30]
-az = [i for i in range(340, 341, 50)]
+num_games = 100
+mcts = [1000]
+az = [i for i in range(100, 101, 1)]
 
-directory = "../open_spiel/results/dab6_2xMaxSim_Apt"
-log = "test.log"
+# 'dab33_pcr_p05_f025', 'dab33_pcr_p025_f05', 'dab33_pcr_p075_f075', 'dab33_pcr_p075_f025', 'dab33_pcr_p025_f075'
+directory = "../open_spiel/results/dab33_pcr_p075_f075"
+log = "dab33_pcr_p075_f075.log"
 
 # "/home/howard/RL/final_project/models/base"
 # directory = "/home/howard/RL/final_project/results/test_dots_and_boxes_3*3_all_maxsim100"
