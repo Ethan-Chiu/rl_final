@@ -25,7 +25,7 @@ from absl import flags
 from open_spiel.python.algorithms.alpha_zero import alpha_zero
 from open_spiel.python.utils import spawn
 
-flags.DEFINE_string("path", "../../../results/3x3_34_t12", "Where to save checkpoints.")
+flags.DEFINE_string("path", "../../../results/3x3_4_025", "Where to save checkpoints.")
 FLAGS = flags.FLAGS
 
 def main(unused_argv):
@@ -47,7 +47,7 @@ def main(unused_argv):
       policy_alpha=0.25,
       policy_epsilon=0.25,
       temperature=1,
-      temperature_drop=12,
+      temperature_drop=24,
       evaluation_window=100,
       eval_levels=18,
 
@@ -67,12 +67,12 @@ def main(unused_argv):
       forced_playouts_and_policy_target_pruning_k = 2,
       forced_playouts_and_policy_target_pruning_exponent = 0.5,
 
-      growing = 1,
-      fill = 1,
+      growing = 0,
+      fill = 0,
 
       # APT
-      use_auxiliary_policy_target=True,
-      auxiliary_policy_target_weight= 0.15,
+      use_auxiliary_policy_target=False,
+      auxiliary_policy_target_weight= 0.25,
 
       # Game branch
       use_game_branch=False,
