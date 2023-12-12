@@ -258,6 +258,8 @@ def _play_game(logger, game_num, game, bots, temperature, temperature_drop,
                                    growing, fill, 
                                    use_apt, 
                                    False, None, 0, 0)
+      for i in range(s[3]+1):
+          t.states.insert(i, trajectory_list[0].states[i])
       trajectory_list.append(t)
 
   return trajectory_list
@@ -353,7 +355,7 @@ def _play_game_from_state(init_state, logger, game_num, game, bots, temperature,
         p = p if p < game_branch_max_prob else game_branch_max_prob
         if random.random() < p:
           clone_state = state.clone()
-          policy_without_best = policy
+          policy_without_best = policy.copy()
           policy_without_best[best_action] = 0.0
           sum = policy_without_best.sum()
           # print("debug", sum)
@@ -362,7 +364,7 @@ def _play_game_from_state(init_state, logger, game_num, game, bots, temperature,
             alt_action = np.random.choice(len(policy_without_best), p=policy_without_best)
           else:
             alt_action = best_action
-          branch_states.append((clone_state, action, alt_action))
+          branch_states.append((clone_state, action, alt_action, len(trajectory.states)))
 
       # NOTE: Add opp_legal_actions_mask
       state.apply_action(action)
