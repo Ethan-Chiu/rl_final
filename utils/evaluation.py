@@ -5,6 +5,7 @@ import sys
 from absl import app
 from absl import flags
 import numpy as np
+import tensorflow as tf
 
 from open_spiel.python.algorithms import mcts
 from open_spiel.python.algorithms.alpha_zero import azbot
@@ -17,6 +18,17 @@ from open_spiel.python.utils import spawn
 import pyspiel
 import tensorflow as tf
 from tqdm import tqdm
+
+class bcolors:
+    HEADER = '\033[95m'
+    OKBLUE = '\033[94m'
+    OKCYAN = '\033[96m'
+    OKGREEN = '\033[92m'
+    WARNING = '\033[93m'
+    FAIL = '\033[91m'
+    ENDC = '\033[0m'
+    BOLD = '\033[1m'
+    UNDERLINE = '\033[4m'
 
 _KNOWN_PLAYERS = [
     "mcts",
@@ -99,9 +111,6 @@ def _init_bot(bot_type, game, player_id):
         playout_cap_randomization_fraction = 0.25,
         forced_playouts_and_policy_target_pruning_k = 2,
         forced_playouts_and_policy_target_pruning_exponent = 0.5)
-    # return azbot.AZBot(
-        # game,
-        # evaluator,)
   if bot_type == "random":
     return uniform_random.UniformRandomBot(player_id, rng)
   if bot_type == "human":
@@ -184,7 +193,8 @@ def _play_game(game, bots, initial_actions):
 
   return returns, history
 
-def actor(*, game, queue):
+def actor(*, game, seed, queue):
+    FLAGS.seed = seed
     bots = [
         _init_bot(FLAGS.player1, game, 0),
         _init_bot(FLAGS.player2, game, 1),
@@ -204,7 +214,7 @@ def actor(*, game, queue):
 
 def parallel(argv):
     game = pyspiel.load_game(FLAGS.game)
-    actors = [spawn.Process(actor, kwargs={"game":game}) for i in range(FLAGS.num_actors)]
+    actors = [spawn.Process(actor, kwargs={"game":game, "seed": i}) for i in range(FLAGS.num_actors)]
     overall = np.zeros((3))
     for proc in actors:
       p = proc.queue.get()
@@ -220,6 +230,7 @@ def parallel(argv):
         player2 = "az" + str(FLAGS.az_path2.split('checkpoint-')[1]) + FLAGS.name2
     print(player1, "v.s.", player2, "results", overall)
     tf.keras.backend.clear_session()
+    print(bcolors.OKGREEN, str(FLAGS.az_path.split('/checkpoint')[0].split('/')[-1]), player1, "v.s.", player2, "results", overall, bcolors.ENDC)
 
 def main(argv):
     game = pyspiel.load_game(FLAGS.game)

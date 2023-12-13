@@ -355,7 +355,7 @@ def _play_game_from_state(config,init_state, logger, game_num, game, bots, tempe
         p = p if p < game_branch_max_prob else game_branch_max_prob
         if random.random() < p:
           clone_state = state.clone()
-          policy_without_best = policy
+          policy_without_best = policy.copy()
           policy_without_best[best_action] = 0.0
           sum = policy_without_best.sum()
           # print("debug", sum)

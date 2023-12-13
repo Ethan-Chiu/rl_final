@@ -1,3 +1,5 @@
+import os
+os.environ['TF_CPP_MIN_LOG_LEVEL'] = '3'
 from collections import OrderedDict
 import evaluation
 from evaluation import FLAGS

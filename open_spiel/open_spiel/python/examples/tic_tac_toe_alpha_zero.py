@@ -19,14 +19,19 @@ Take a look at the log-learner.txt in the output directory.
 If you want more control, check out `alpha_zero.py`.
 """
 
+import os
+import random
 from absl import app
 from absl import flags
+import numpy as np
+import tensorflow as tf
 
 from open_spiel.python.algorithms.alpha_zero import alpha_zero
 from open_spiel.python.utils import spawn
 
 flags.DEFINE_string("path", "/home/howard/RL/final_project/results/test_dots_and_boxes_3*3_growing_1_1", "Where to save checkpoints.")
 FLAGS = flags.FLAGS
+seed = 0
 
 def main(unused_argv):
   config = alpha_zero.Config(
@@ -68,8 +73,8 @@ def main(unused_argv):
       forced_playouts_and_policy_target_pruning_k = 2,
       forced_playouts_and_policy_target_pruning_exponent = 0.5,
 
-      growing = 1,
-      fill = 1,
+      growing = 0,
+      fill = 0,
 
       # APT
       use_auxiliary_policy_target=False,
@@ -81,6 +86,8 @@ def main(unused_argv):
       game_branch_number=1,
       game_branch_prob_power=3,
   )
+
+  set_seed(seed)
   alpha_zero.alpha_zero(config)
   # config = alpha_zero.Config(
   #     game="dots_and_boxes",
@@ -128,6 +135,18 @@ def main(unused_argv):
   #     auxiliary_policy_target_weight= 0.15,
   # )
   # alpha_zero.alpha_zero(config)
+
+def set_seed(seed):
+  # os.environ['PYTHONHASHSEED'] = str(seed)
+  random.seed(seed)
+  np.random.seed(seed)
+  # tf.compat.v1.set_random_seed(seed)
+  # tf.compat.v1.random.set_random_seed(seed)
+  # tf.random.set_seed(seed)
+  # tf.experimental.numpy.random.seed(seed)
+  # tf.config.experimental.enable_op_determinism()
+  # os.environ['TF_DETERMINISTIC_OPS'] = '1'
+  # os.environ['TF_CUDNN_DETERMINISTIC'] = '1'
 
 
 if __name__ == "__main__":
