@@ -8,14 +8,11 @@ import random
 
 game = "dots_and_boxes"
 num_matches = 10
-num_games = 100
+num_games = 10
 
-directorys = ["/results/3x3_3_10",
-              "/results/3x3_3_11",
-              "/results/3x3_3_20",
-              "/results/3x3_3_21",]
-mcts = [1000]
-az = [100]
+directorys = ["/results/3x3_1_075075_3_11",]
+mcts = [10000]
+az = [300]
 log = "/results/3x3.log"
 
 FLAGS.game = game
