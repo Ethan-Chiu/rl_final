@@ -519,7 +519,7 @@ class MCTSBot(pyspiel.Bot):
             self.use_playout_cap_randomization
             and random.random() > self.playout_cap_randomization_p
         ):
-            max_simulations = max_simulations * self.playout_cap_randomization_fraction
+            max_simulations = math.ceil(max_simulations * self.playout_cap_randomization_fraction)
 
         for _ in range(start, max_simulations):
             visit_path, working_state = self._apply_tree_policy(root, state)
