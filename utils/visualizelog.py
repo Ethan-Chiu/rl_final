@@ -1,6 +1,6 @@
 import matplotlib.pyplot as plt
 # files = ["dab/tree-2/log-learner.txt", "dab/tree-0/log-learner.txt", "dab/tree-1/log-learner.txt"]
-files = ["/home/howard/RL/final_project/results/test_dots_and_boxes_3*3_all_1_maxsim100/log-learner.txt",]
+files = ["/home/howard/RL/final_project/results/test_dots_and_boxes_3*3_apt_0.25/log-learner.txt",]
 splits=["total","policy","value","l2","opp"]
 split="total"
 for i,split in enumerate(splits):

@@ -15,6 +15,8 @@ from open_spiel.python.bots import human
 from open_spiel.python.bots import uniform_random
 from open_spiel.python.utils import spawn
 import pyspiel
+import tensorflow as tf
+from tqdm import tqdm
 
 _KNOWN_PLAYERS = [
     "mcts",
@@ -189,7 +191,7 @@ def actor(*, game, queue):
     ]
     l = []
     overall_wins = np.zeros((3))
-    for game_num in range(FLAGS.num_games):
+    for game_num in tqdm(range(FLAGS.num_games), leave=True):
         returns, history = _play_game(game, bots, [])
         if returns[0] > 0:
             overall_wins[0] += 1
@@ -217,6 +219,7 @@ def parallel(argv):
     if FLAGS.player2 == "az":
         player2 = "az" + str(FLAGS.az_path2.split('checkpoint-')[1]) + FLAGS.name2
     print(player1, "v.s.", player2, "results", overall)
+    tf.keras.backend.clear_session()
 
 def main(argv):
     game = pyspiel.load_game(FLAGS.game)

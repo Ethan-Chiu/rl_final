@@ -114,6 +114,7 @@ class Buffer(object):
 
 class Config(collections.namedtuple(
     "Config", [
+        "seed",
         "game",
         "path",
         "learning_rate",
@@ -224,19 +225,20 @@ def _init_bot(config, game, evaluator_, evaluation):
       config.use_forced_playouts_and_policy_target_pruning,
       config.forced_playouts_and_policy_target_pruning_k,
       config.forced_playouts_and_policy_target_pruning_exponent,
+      random_state=np.random.RandomState(config.seed),
       solve=False,
       dirichlet_noise=noise,
       child_selection_fn=mcts.SearchNode.puct_value,
       verbose=False,
       dont_return_chance_node=True)
 
-def _play_game(logger, game_num, game, bots, temperature, temperature_drop, 
+def _play_game(config,logger, game_num, game, bots, temperature, temperature_drop, 
                growing, fill, 
                use_apt, 
                use_game_branch, game_len_stat, branch_num, game_branch_max_prob, game_branch_prob_power):
   # Start a new game
   init_state = game.new_initial_state()
-  trajectory, branch_states = _play_game_from_state(init_state, logger, game_num, game, bots, temperature, temperature_drop, 
+  trajectory, branch_states = _play_game_from_state(config,init_state, logger, game_num, game, bots, temperature, temperature_drop, 
                                                     growing, fill,
                                                     use_apt, 
                                                     use_game_branch, game_len_stat, game_branch_max_prob, game_branch_prob_power)
@@ -263,7 +265,7 @@ def _play_game(logger, game_num, game, bots, temperature, temperature_drop,
   return trajectory_list
   
 
-def _play_game_from_state(init_state, logger, game_num, game, bots, temperature, temperature_drop, 
+def _play_game_from_state(config,init_state, logger, game_num, game, bots, temperature, temperature_drop, 
                           growing, fill, 
                           use_apt, 
                           use_game_branch, mean_game_len, game_branch_max_prob, game_branch_prob_power):
@@ -271,7 +273,7 @@ def _play_game_from_state(init_state, logger, game_num, game, bots, temperature,
   trajectory = Trajectory()
   actions = []
   state = init_state
-  random_state = np.random.RandomState()
+  random_state = np.random.RandomState(config.seed)
   logger.opt_print(" Starting game {} ".format(game_num).center(60, "-"))
   logger.opt_print("Initial state:\n{}".format(state))
   tree = [None] * 2
@@ -421,7 +423,7 @@ def actor(*, config, game, logger, queue):
   for game_num in itertools.count():
     if not update_checkpoint(logger, queue, model, az_evaluator):
       return
-    trajectories = _play_game(logger, game_num, game, bots, temperature=config.temperature,
+    trajectories = _play_game(config,logger, game_num, game, bots, temperature=config.temperature,
                          temperature_drop=config.temperature_drop, growing=config.growing, fill=config.fill,
                          use_apt=config.use_auxiliary_policy_target, 
                          use_game_branch=config.use_game_branch, game_len_stat=mean_length, branch_num=config.game_branch_number, game_branch_max_prob=config.game_branch_max_prob, game_branch_prob_power=config.game_branch_prob_power)
@@ -443,7 +445,7 @@ def evaluator(*, game, config, logger, queue):
   model = _init_model_from_config(config)
   logger.print("Initializing bots")
   az_evaluator = evaluator_lib.AlphaZeroEvaluator(game, model)
-  random_evaluator = mcts.RandomRolloutEvaluator()
+  random_evaluator = mcts.RandomRolloutEvaluator(random_state=np.random.RandomState(config.seed))
 
   for game_num in itertools.count():
     if not update_checkpoint(logger, queue, model, az_evaluator):
@@ -459,6 +461,7 @@ def evaluator(*, game, config, logger, queue):
             config.uct_c,
             max_simulations,
             random_evaluator,
+            random_state=np.random.RandomState(config.seed),
             use_playout_cap_randomization=config.use_playout_cap_randomization,
             playout_cap_randomization_p=config.playout_cap_randomization_p,
             playout_cap_randomization_fraction=config.playout_cap_randomization_fraction,
@@ -472,7 +475,7 @@ def evaluator(*, game, config, logger, queue):
     if az_player == 1:
       bots = list(reversed(bots))
 
-    trajectory = _play_game(logger, game_num, game, bots, temperature=1,
+    trajectory = _play_game(config,logger, game_num, game, bots, temperature=1,
                             temperature_drop=0, growing=0, fill=0,
                             use_apt=config.use_auxiliary_policy_target, 
                             use_game_branch=False, game_len_stat=None, branch_num=None, game_branch_max_prob=None, game_branch_prob_power=None)[0]
@@ -662,6 +665,9 @@ def learner(*, game, config, actors, evaluators, broadcast_fn, logger):
 
 def alpha_zero(config: Config):
   """Start all the worker processes for a full alphazero setup."""
+  np.random.seed(config.seed)
+  random.seed(config.seed)
+  print("fixed random seed", config.seed)
   game = pyspiel.load_game(config.game)
   config = config._replace(
       observation_shape=game.observation_tensor_shape(),

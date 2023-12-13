@@ -25,11 +25,12 @@ from absl import flags
 from open_spiel.python.algorithms.alpha_zero import alpha_zero
 from open_spiel.python.utils import spawn
 
-flags.DEFINE_string("path", "/home/howard/RL/final_project/results/test_dots_and_boxes_3*3_GB_maxsim100", "Where to save checkpoints.")
+flags.DEFINE_string("path", "/home/howard/RL/final_project/results/test_dots_and_boxes_3*3_growing_1_1", "Where to save checkpoints.")
 FLAGS = flags.FLAGS
 
 def main(unused_argv):
   config = alpha_zero.Config(
+      seed=0,
       game="dots_and_boxes",
       path=FLAGS.path,
       learning_rate=0.01,
@@ -37,7 +38,7 @@ def main(unused_argv):
       train_batch_size=64,
       replay_buffer_size=2**14,
       replay_buffer_reuse=10,
-      max_steps=100,
+      max_steps=140,
       checkpoint_freq=10,
 
       actors=4,
@@ -60,22 +61,22 @@ def main(unused_argv):
       quiet=True,
 
       use_playout_cap_randomization = False,
-      playout_cap_randomization_p = 0.25,
-      playout_cap_randomization_fraction = 0.25,
+      playout_cap_randomization_p = 0.75,
+      playout_cap_randomization_fraction = 0.5,
 
       use_forced_playouts_and_policy_target_pruning = False,
       forced_playouts_and_policy_target_pruning_k = 2,
       forced_playouts_and_policy_target_pruning_exponent = 0.5,
 
-      growing = 0,
-      fill = 0,
+      growing = 1,
+      fill = 1,
 
       # APT
       use_auxiliary_policy_target=False,
-      auxiliary_policy_target_weight= 0.15,
+      auxiliary_policy_target_weight= 0.25,
 
       # Game Branch
-      use_game_branch=True,
+      use_game_branch=False,
       game_branch_max_prob=0.5,
       game_branch_number=1,
       game_branch_prob_power=3,
