@@ -5,6 +5,7 @@ import sys
 from absl import app
 from absl import flags
 import numpy as np
+import tensorflow as tf
 
 from open_spiel.python.algorithms import mcts
 from open_spiel.python.algorithms.alpha_zero import azbot
@@ -15,6 +16,18 @@ from open_spiel.python.bots import human
 from open_spiel.python.bots import uniform_random
 from open_spiel.python.utils import spawn
 import pyspiel
+from tqdm import tqdm
+
+class bcolors:
+    HEADER = '\033[95m'
+    OKBLUE = '\033[94m'
+    OKCYAN = '\033[96m'
+    OKGREEN = '\033[92m'
+    WARNING = '\033[93m'
+    FAIL = '\033[91m'
+    ENDC = '\033[0m'
+    BOLD = '\033[1m'
+    UNDERLINE = '\033[4m'
 
 _KNOWN_PLAYERS = [
     "mcts",
@@ -97,9 +110,6 @@ def _init_bot(bot_type, game, player_id):
         playout_cap_randomization_fraction = 0.25,
         forced_playouts_and_policy_target_pruning_k = 2,
         forced_playouts_and_policy_target_pruning_exponent = 0.5)
-    # return azbot.AZBot(
-        # game,
-        # evaluator,)
   if bot_type == "random":
     return uniform_random.UniformRandomBot(player_id, rng)
   if bot_type == "human":
@@ -182,14 +192,15 @@ def _play_game(game, bots, initial_actions):
 
   return returns, history
 
-def actor(*, game, queue):
+def actor(*, game, seed, queue):
+    FLAGS.seed = seed
     bots = [
         _init_bot(FLAGS.player1, game, 0),
         _init_bot(FLAGS.player2, game, 1),
     ]
     l = []
     overall_wins = np.zeros((3))
-    for game_num in range(FLAGS.num_games):
+    for game_num in tqdm(range(FLAGS.num_games)):
         returns, history = _play_game(game, bots, [])
         if returns[0] > 0:
             overall_wins[0] += 1
@@ -202,7 +213,7 @@ def actor(*, game, queue):
 
 def parallel(argv):
     game = pyspiel.load_game(FLAGS.game)
-    actors = [spawn.Process(actor, kwargs={"game":game}) for i in range(FLAGS.num_actors)]
+    actors = [spawn.Process(actor, kwargs={"game":game, "seed": i}) for i in range(FLAGS.num_actors)]
     overall = np.zeros((3))
     for proc in actors:
       p = proc.queue.get()
@@ -216,7 +227,7 @@ def parallel(argv):
         player1 = "az" + str(FLAGS.az_path.split('checkpoint-')[1]) + FLAGS.name
     if FLAGS.player2 == "az":
         player2 = "az" + str(FLAGS.az_path2.split('checkpoint-')[1]) + FLAGS.name2
-    print(player1, "v.s.", player2, "results", overall)
+    print(bcolors.OKGREEN, str(FLAGS.az_path.split('/checkpoint')[0].split('/')[-1]), player1, "v.s.", player2, "results", overall, bcolors.ENDC)
 
 def main(argv):
     game = pyspiel.load_game(FLAGS.game)
@@ -252,7 +263,7 @@ def main(argv):
     f = open(FLAGS.log, 'a')
     f.write(FLAGS.player1 + "/" + FLAGS.player2 + "/" + str(l) + '\n')
     f.close()
-    # tf.keras.backend.clear_session()
+    tf.keras.backend.clear_session()
     # print("Average return", average_return/FLAGS.num_games)
 
 if __name__ == "__main__":

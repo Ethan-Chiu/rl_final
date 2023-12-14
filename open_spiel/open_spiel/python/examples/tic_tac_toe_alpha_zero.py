@@ -19,8 +19,12 @@ Take a look at the log-learner.txt in the output directory.
 If you want more control, check out `alpha_zero.py`.
 """
 
+import os
+import random
 from absl import app
 from absl import flags
+import numpy as np
+import tensorflow as tf
 
 from open_spiel.python.algorithms.alpha_zero import alpha_zero
 from open_spiel.python.utils import spawn
@@ -28,6 +32,7 @@ from open_spiel.python.utils import spawn
 # flags.DEFINE_string("path", "/home/howard/RL/final_project/results/test_dots_and_boxes_3*3_all_maxsim100", "Where to save checkpoints.")
 flags.DEFINE_string("path", "../../../results/dab33_pcr_p05_f025_2", "Where to save checkpoints.")
 FLAGS = flags.FLAGS
+seed = 0
 
 def main(unused_argv):
   config = alpha_zero.Config(
@@ -38,7 +43,7 @@ def main(unused_argv):
       train_batch_size=64,
       replay_buffer_size=2**14,
       replay_buffer_reuse=10,
-      max_steps=170,
+      max_steps=100,
       checkpoint_freq=10,
 
       actors=4,
@@ -60,12 +65,12 @@ def main(unused_argv):
 
       quiet=True,
 
-      use_playout_cap_randomization = True,
-      playout_cap_randomization_p = 0.5,
+      use_playout_cap_randomization = False,
+      playout_cap_randomization_p = 0.25,
       playout_cap_randomization_fraction = 0.25,
 
       use_forced_playouts_and_policy_target_pruning = False,
-      forced_playouts_and_policy_target_pruning_k = 2.0,
+      forced_playouts_and_policy_target_pruning_k = 2,
       forced_playouts_and_policy_target_pruning_exponent = 0.5,
 
       growing = 0,
@@ -73,7 +78,7 @@ def main(unused_argv):
 
       # APT
       use_auxiliary_policy_target=False,
-      auxiliary_policy_target_weight= 0.15,
+      auxiliary_policy_target_weight= 0.25,
 
       # Game branch
       use_game_branch=False,
@@ -81,7 +86,21 @@ def main(unused_argv):
       game_branch_max_prob=0.5,
       game_branch_prob_power=4,
   )
+
+  set_seed(seed)
   alpha_zero.alpha_zero(config)
+
+def set_seed(seed):
+  # os.environ['PYTHONHASHSEED'] = str(seed)
+  random.seed(seed)
+  np.random.seed(seed)
+  # tf.compat.v1.set_random_seed(seed)
+  # tf.compat.v1.random.set_random_seed(seed)
+  # tf.random.set_seed(seed)
+  # tf.experimental.numpy.random.seed(seed)
+  # tf.config.experimental.enable_op_determinism()
+  # os.environ['TF_DETERMINISTIC_OPS'] = '1'
+  # os.environ['TF_CUDNN_DETERMINISTIC'] = '1'
 
 
 if __name__ == "__main__":
