@@ -8,8 +8,9 @@ game = "dots_and_boxes"
 
 # 'dab33_pcr_p05_f025', 'dab33_pcr_p025_f05', 'dab33_pcr_p075_f075', 'dab33_pcr_p075_f025', 'dab33_pcr_p025_f075'
 # 'dab33_fpptp_k1_5_e05', 'dab33_fpptp_k1_5_e025', 'dab33_fpptp_k2_e025'
-directory = "../open_spiel/results/dab33_fpptp_k1_5_e05"
-log = "dab33_fpptp_k1_5_e05.log"
+# 'dab33_fpptp_k3_e05', 'dab33_fpptp_k3_e075', 'dab33_fpptp_k2_5_e05'
+directory = "../open_spiel/results/dab33_fpptp_k3_e05"
+log = "dab33_fpptp_k3_e05.log"
 
 # "/home/howard/RL/final_project/models/base"
 # directory = "/home/howard/RL/final_project/results/test_dots_and_boxes_3*3_all_maxsim100"
@@ -19,7 +20,7 @@ log = "dab33_fpptp_k1_5_e05.log"
 # log = "battle.log"
 
 num_matches = 10
-num_games = 10
+num_games = 1000
 mcts = [1000]
 az = [100]
 
