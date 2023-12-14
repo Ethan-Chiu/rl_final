@@ -26,7 +26,7 @@ from open_spiel.python.algorithms.alpha_zero import alpha_zero
 from open_spiel.python.utils import spawn
 
 # flags.DEFINE_string("path", "/home/howard/RL/final_project/results/test_dots_and_boxes_3*3_all_maxsim100", "Where to save checkpoints.")
-flags.DEFINE_string("path", "../../../results/test", "Where to save checkpoints.")
+flags.DEFINE_string("path", "../../../results/dab33_pcr_p05_f025_2", "Where to save checkpoints.")
 FLAGS = flags.FLAGS
 
 def main(unused_argv):
@@ -38,22 +38,22 @@ def main(unused_argv):
       train_batch_size=64,
       replay_buffer_size=2**14,
       replay_buffer_reuse=10,
-      max_steps=1000,
+      max_steps=170,
       checkpoint_freq=10,
 
       actors=4,
       evaluators=0,
       uct_c=1,
       max_simulations=100,
-      policy_alpha=1,
+      policy_alpha=0.25,
       policy_epsilon=0.25,
       temperature=1,
-      temperature_drop=4,
-      evaluation_window=20,
+      temperature_drop=24,
+      evaluation_window=100,
       eval_levels=18,
 
       nn_model="resnet",
-      nn_width=256,
+      nn_width=128,
       nn_depth=2,
       observation_shape=None,
       output_size=None,
@@ -61,18 +61,18 @@ def main(unused_argv):
       quiet=True,
 
       use_playout_cap_randomization = True,
-      playout_cap_randomization_p = 0.25,
+      playout_cap_randomization_p = 0.5,
       playout_cap_randomization_fraction = 0.25,
 
-      use_forced_playouts_and_policy_target_pruning = True,
-      forced_playouts_and_policy_target_pruning_k = 2,
+      use_forced_playouts_and_policy_target_pruning = False,
+      forced_playouts_and_policy_target_pruning_k = 2.0,
       forced_playouts_and_policy_target_pruning_exponent = 0.5,
 
-      growing = 1,
-      fill = 1,
+      growing = 0,
+      fill = 0,
 
       # APT
-      use_auxiliary_policy_target=True,
+      use_auxiliary_policy_target=False,
       auxiliary_policy_target_weight= 0.15,
 
       # Game branch
