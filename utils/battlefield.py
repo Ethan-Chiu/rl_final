@@ -8,33 +8,34 @@ import random
 
 game = "dots_and_boxes"
 num_matches = 10
-num_games = 10
+num_games = 100
 
-directorys = ["/results/3x3_1_075075_3_11",]
-mcts = [10000]
-az = [300]
+directorys = ["/results/3x3_1_075002-2",]
+mcts = [1000]
+az = [110]
 log = "/results/3x3.log"
 
 FLAGS.game = game
 FLAGS.num_games = num_games
 FLAGS.log = log
 FLAGS.num_actors = num_matches
-for directory in directorys:
-    for a in az:
-        for m in mcts:
-            FLAGS.az_path = directory + "/checkpoint-" + str(a)
-            FLAGS.az_path2 = directory + "/checkpoint-" + str(a)
-            FLAGS.max_simulations = m
-            FLAGS.max_simulations2 = m
-            FLAGS.player1 = "az"
-            FLAGS.player2 = "mcts"
-            try:
-                app.run(evaluation.parallel)
-            except:
-                pass
-            FLAGS.player1 = "mcts"
-            FLAGS.player2 = "az"
-            try:
-                app.run(evaluation.parallel)
-            except:
-                pass
+for i in range(len(directorys)):
+    directory = directorys[i]
+    a = az[i]
+    for m in mcts:
+        FLAGS.az_path = directory + "/checkpoint-" + str(a)
+        FLAGS.az_path2 = directory + "/checkpoint-" + str(a)
+        FLAGS.max_simulations = m
+        FLAGS.max_simulations2 = m
+        FLAGS.player1 = "az"
+        FLAGS.player2 = "mcts"
+        try:
+            app.run(evaluation.parallel)
+        except:
+            pass
+        FLAGS.player1 = "mcts"
+        FLAGS.player2 = "az"
+        try:
+            app.run(evaluation.parallel)
+        except:
+            pass

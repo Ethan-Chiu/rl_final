@@ -29,7 +29,11 @@ import tensorflow as tf
 from open_spiel.python.algorithms.alpha_zero import alpha_zero
 from open_spiel.python.utils import spawn
 
-flags.DEFINE_string("path", "../../../results/3x3_1_025025", "Where to save checkpoints.")
+flags.DEFINE_string("path", "../../../results/3x3", "Where to save checkpoints.")
+flags.DEFINE_bool("pcr", False, "use playout_cap_randomization")
+flags.DEFINE_float("pcr_p", 1., "playout_cap_randomization_p")
+flags.DEFINE_float("pcr_f", 1., "playout_cap_randomization_fraction")
+flags.DEFINE_integer("max_steps", 100, "playout_cap_randomization_fraction")
 FLAGS = flags.FLAGS
 seed = 0
 
@@ -42,7 +46,7 @@ def main(unused_argv):
       train_batch_size=64,
       replay_buffer_size=2**14,
       replay_buffer_reuse=10,
-      max_steps=240,
+      max_steps=FLAGS.max_steps,
       checkpoint_freq=10,
 
       actors=4,
@@ -64,9 +68,9 @@ def main(unused_argv):
 
       quiet=True,
 
-      use_playout_cap_randomization = True,
-      playout_cap_randomization_p = 0.25,
-      playout_cap_randomization_fraction = 0.25,
+      use_playout_cap_randomization = FLAGS.pcr,
+      playout_cap_randomization_p = FLAGS.pcr_p,
+      playout_cap_randomization_fraction = FLAGS.pcr_f,
 
       use_forced_playouts_and_policy_target_pruning = False,
       forced_playouts_and_policy_target_pruning_k = 2,
