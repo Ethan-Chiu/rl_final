@@ -349,20 +349,27 @@ def _play_game_from_state(init_state, logger, game_num, game, bots, temperature,
 
       # NOTE: Use game branch 
       if use_game_branch:
-        p = game_branch_max_prob * (current_len / mean_game_len)**game_branch_prob_power
-        p = p if p < game_branch_max_prob else game_branch_max_prob
-        if random.random() < p:
-          clone_state = state.clone()
-          policy_without_best = policy.copy()
-          policy_without_best[best_action] = 0.0
-          sum = policy_without_best.sum()
-          # print("debug", sum)
-          if not sum == 0:
-            policy_without_best /= sum
-            alt_action = np.random.choice(len(policy_without_best), p=policy_without_best)
-          else:
-            alt_action = best_action
-          branch_states.append((clone_state, action, alt_action))
+        go_branch = False
+        if game_branch_max_prob < 1:
+          p = game_branch_max_prob * (current_len / mean_game_len)**game_branch_prob_power
+          p = p if p < game_branch_max_prob else game_branch_max_prob
+          if random.random() < p:
+              go_branch = True
+        elif current_len == game_branch_max_prob:
+            go_branch = True
+        if go_branch:
+            clone_state = state.clone()
+            policy_without_best = policy.copy()
+            policy_without_best[best_action] = 0.0
+            sum = policy_without_best.sum()
+            # print("debug", sum)
+            if not sum == 0:
+              policy_without_best /= sum
+              alt_action = np.random.choice(len(policy_without_best), p=policy_without_best)
+            else:
+              alt_action = best_action
+            branch_states.append((clone_state, action, alt_action))
+            
 
       # NOTE: Add opp_legal_actions_mask
       state.apply_action(action)
