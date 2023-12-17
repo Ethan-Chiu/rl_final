@@ -351,15 +351,11 @@ def _play_game_from_state(config,init_state, logger, game_num, game, bots, tempe
       # NOTE: Use game branch 
       if use_game_branch:
         go_branch = False
-        if game_branch_max_prob < 1:
+        if game_branch_max_prob <= 1:
           p = game_branch_max_prob * (2 * (0.5 - abs((current_len / mean_game_len) - 0.5)))**game_branch_prob_power
           p = 0 if p < 0 else p
           p = p if p < game_branch_max_prob else game_branch_max_prob
           if random.random() < p:
-              go_branch = True
-        elif current_len == game_branch_max_prob:
-            go_branch = True
-        if go_branch:
             clone_state = state.clone()
             policy_without_best = policy.copy()
             policy_without_best[best_action] = 0.0
@@ -371,6 +367,18 @@ def _play_game_from_state(config,init_state, logger, game_num, game, bots, tempe
             else:
               alt_action = best_action
             branch_states.append((clone_state, action, alt_action))
+        elif current_len == game_branch_max_prob:
+            policy_without_best = policy.copy()
+            policy_without_best[best_action] = 0.0
+            for z in range(config.game_branch_number):
+                clone_state = state.clone()
+                sum = policy_without_best.sum()
+                if not sum == 0:
+                  alt_action = np.random.choice(len(policy_without_best), p=policy_without_best/sum)
+                else:
+                  alt_action = best_action
+                policy_without_best[alt_action] = 0.0
+                branch_states.append((clone_state, action, alt_action))
             
 
       # NOTE: Add opp_legal_actions_mask
