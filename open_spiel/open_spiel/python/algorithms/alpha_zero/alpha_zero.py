@@ -369,7 +369,7 @@ def _play_game_from_state(config,init_state, logger, game_num, game, bots, tempe
             branch_states.append((clone_state, action, alt_action))
         elif current_len == game_branch_max_prob:
             policy_without_best = policy.copy()
-            policy_without_best[best_action] = 0.0
+            policy_without_best[action] = 0.0
             for z in range(config.game_branch_number):
                 clone_state = state.clone()
                 sum = policy_without_best.sum()
