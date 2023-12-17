@@ -8,14 +8,18 @@ import random
 
 game = "dots_and_boxes"
 num_matches = 10
-num_games = 10
+num_games = 100
 seed=0
 # "/home/howard/RL/final_project/models/base"
-directories = ["/home/howard/RL/final_project/results/test_dots_and_boxes_3*3_allFalse",]
-az = [100,
-      ]
+base = "/home/howard/RL/final_project/results/"
+# directories=["test_dots_and_boxes_3*3_allFalse",]
+directories =["test_dots_and_boxes_3*3_new_pcr_0.75_0.02",
+        "test_dots_and_boxes_3*3_new_pcr_0.75_0.05",]
+directories = [base + d for d in directories]
+az = [120,110]
+# az = [100]
 # directory = "/home/howard/RL/final_project/results/test_dots_and_boxes_3*3_apt_0.35"
-mcts = [10000] # [2, 5, 10, 30, 100]
+mcts = [1000] # [2, 5, 10, 30, 100]
 # az = [i for i in range(100,101,100)]
 log = "/home/howard/RL/final_project/logs/test_dots_and_boxes_3*3_apt_0.25.log"
 

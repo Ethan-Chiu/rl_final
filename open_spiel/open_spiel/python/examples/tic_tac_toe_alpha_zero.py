@@ -29,7 +29,7 @@ import tensorflow as tf
 from open_spiel.python.algorithms.alpha_zero import alpha_zero
 from open_spiel.python.utils import spawn
 
-flags.DEFINE_string("path", "/home/howard/RL/final_project/results/test_dots_and_boxes_3*3_growing_1_1", "Where to save checkpoints.")
+flags.DEFINE_string("path", "/home/howard/RL/final_project/results/test_dots_and_boxes_3*3_new_pcr_0.5_0.75", "Where to save checkpoints.")
 FLAGS = flags.FLAGS
 seed = 0
 
@@ -43,7 +43,7 @@ def main(unused_argv):
       train_batch_size=64,
       replay_buffer_size=2**14,
       replay_buffer_reuse=10,
-      max_steps=140,
+      max_steps=130,
       checkpoint_freq=10,
 
       actors=4,
@@ -65,9 +65,9 @@ def main(unused_argv):
 
       quiet=True,
 
-      use_playout_cap_randomization = False,
-      playout_cap_randomization_p = 0.75,
-      playout_cap_randomization_fraction = 0.5,
+      use_playout_cap_randomization = True,
+      playout_cap_randomization_p = 0.5,
+      playout_cap_randomization_fraction = 0.75,
 
       use_forced_playouts_and_policy_target_pruning = False,
       forced_playouts_and_policy_target_pruning_k = 2,

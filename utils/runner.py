@@ -5,6 +5,7 @@ from open_spiel.python.algorithms.alpha_zero import alpha_zero
 from open_spiel.python.utils import spawn
 
 flags.DEFINE_string("path", "dab/test", "Where to save checkpoints.")
+flags.DEFINE_integer("max_steps", 100, "How many simulations to run.")
 flags.DEFINE_integer("max_simulations", 100, "How many simulations to run.")
 flags.DEFINE_bool("pcr", False, "use playout_cap_randomization")
 flags.DEFINE_float("pcr_p", 1., "playout_cap_randomization_p")
@@ -32,7 +33,7 @@ def main(unused_argv):
       train_batch_size=64,
       replay_buffer_size=2**14,
       replay_buffer_reuse=10,
-      max_steps=300,
+      max_steps=FLAGS.max_steps,
       checkpoint_freq=10,
 
       actors=4,
