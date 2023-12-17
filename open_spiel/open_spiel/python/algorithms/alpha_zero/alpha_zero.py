@@ -351,7 +351,8 @@ def _play_game_from_state(init_state, logger, game_num, game, bots, temperature,
       if use_game_branch:
         go_branch = False
         if game_branch_max_prob < 1:
-          p = game_branch_max_prob * (current_len / mean_game_len)**game_branch_prob_power
+          p = game_branch_max_prob * (2 * (0.5 - abs((current_len / mean_game_len) - 0.5)))**game_branch_prob_power
+          p = 0 if p < 0 else p
           p = p if p < game_branch_max_prob else game_branch_max_prob
           if random.random() < p:
               go_branch = True
