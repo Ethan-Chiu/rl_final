@@ -29,7 +29,7 @@ import tensorflow as tf
 from open_spiel.python.algorithms.alpha_zero import alpha_zero
 from open_spiel.python.utils import spawn
 
-flags.DEFINE_string("path", "../../../results/3x3", "Where to save checkpoints.")
+flags.DEFINE_string("path", "../../../results/3x3_final_None", "Where to save checkpoints.")
 
 FLAGS = flags.FLAGS
 
@@ -85,6 +85,8 @@ def main(unused_argv):
       game_branch_number=1,
       game_branch_prob_power=3,
   )
+
+  alpha_zero.alpha_zero(config)
 
 if __name__ == "__main__":
   with spawn.main_handler():

@@ -228,7 +228,6 @@ def parallel(argv):
         player1 = "az" + str(FLAGS.az_path.split('checkpoint-')[1]) + FLAGS.name
     if FLAGS.player2 == "az":
         player2 = "az" + str(FLAGS.az_path2.split('checkpoint-')[1]) + FLAGS.name2
-    print(player1, "v.s.", player2, "results", overall)
     tf.keras.backend.clear_session()
     print(bcolors.OKGREEN, str(FLAGS.az_path.split('/checkpoint')[0].split('/')[-1]), player1, "v.s.", player2, "results", overall, bcolors.ENDC)
 
