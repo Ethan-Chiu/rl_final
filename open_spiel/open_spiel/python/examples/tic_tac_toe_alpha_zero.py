@@ -30,11 +30,12 @@ from open_spiel.python.algorithms.alpha_zero import alpha_zero
 from open_spiel.python.utils import spawn
 
 flags.DEFINE_string("path", "../../../results/3x3", "Where to save checkpoints.")
-flags.DEFINE_string("max_steps", 100)
+
 FLAGS = flags.FLAGS
 
 def main(unused_argv):
   config = alpha_zero.Config(
+      seed=0,
       game="dots_and_boxes",
       path=FLAGS.path,
       learning_rate=0.01,
@@ -42,7 +43,7 @@ def main(unused_argv):
       train_batch_size=64,
       replay_buffer_size=2**14,
       replay_buffer_reuse=10,
-      max_steps=FLAGS.max_steps,
+      max_steps=100,
       checkpoint_freq=10,
 
       actors=4,
@@ -79,14 +80,12 @@ def main(unused_argv):
       use_auxiliary_policy_target=False,
       auxiliary_policy_target_weight= 0.25,
 
-      # Game branch
+      # Game Branch
       use_game_branch=False,
-      game_branch_number=1,
       game_branch_max_prob=0.5,
-      game_branch_prob_power=4,
+      game_branch_number=1,
+      game_branch_prob_power=3,
   )
-
-  alpha_zero.alpha_zero(config)
 
 if __name__ == "__main__":
   with spawn.main_handler():

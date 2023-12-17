@@ -7,22 +7,23 @@ from absl import app
 import random
 
 game = "dots_and_boxes"
+
 num_matches = 10
 num_games = 10
 
-directorys = ["/results/3x3_None-2",
+directories = ["/results/3x3_None-2",
               "/results/3x3_None-2",]
 mcts = [10000]
 az = [100, 1000]
 log = "/results/3x3.log"
 
+
 FLAGS.game = game
 FLAGS.num_games = num_games
 FLAGS.log = log
 FLAGS.num_actors = num_matches
-for i in range(len(directorys)):
-    directory = directorys[i]
-    a = az[i]
+
+for directory, a in zip(directories, az):
     for m in mcts:
         FLAGS.az_path = directory + "/checkpoint-" + str(a)
         FLAGS.az_path2 = directory + "/checkpoint-" + str(a)

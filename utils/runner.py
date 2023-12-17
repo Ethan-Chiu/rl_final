@@ -5,6 +5,8 @@ from open_spiel.python.algorithms.alpha_zero import alpha_zero
 from open_spiel.python.utils import spawn
 
 flags.DEFINE_string("path", "dab/test", "Where to save checkpoints.")
+flags.DEFINE_integer("max_steps", 100, "How many simulations to run.")
+flags.DEFINE_integer("max_simulations", 100, "How many simulations to run.")
 flags.DEFINE_bool("pcr", False, "use playout_cap_randomization")
 flags.DEFINE_float("pcr_p", 1., "playout_cap_randomization_p")
 flags.DEFINE_float("pcr_f", 1., "playout_cap_randomization_fraction")
@@ -23,6 +25,7 @@ FLAGS = flags.FLAGS
 
 def main(unused_argv):
   config = alpha_zero.Config(
+      seed=0,
       game="dots_and_boxes",
       path=FLAGS.path,
       learning_rate=0.01,
@@ -30,13 +33,13 @@ def main(unused_argv):
       train_batch_size=64,
       replay_buffer_size=2**14,
       replay_buffer_reuse=10,
-      max_steps=100,
+      max_steps=FLAGS.max_steps,
       checkpoint_freq=10,
 
       actors=4,
       evaluators=0,
       uct_c=1,
-      max_simulations=100,
+      max_simulations=FLAGS.max_simulations,
       policy_alpha=0.25,
       policy_epsilon=0.25,
       temperature=1,

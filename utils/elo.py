@@ -2,8 +2,19 @@ from collections import OrderedDict
 import matplotlib.pyplot as plt
 import random
 
-logs = ['battle15.log']
-logs = ['battle18.log', 'battle19.log', 'battle20.log']
+
+logs = ['/home/howard/RL/final_project/logs/mcts.log']
+elo_log = '/home/howard/RL/final_project/logs/elo_mcts.log'
+
+# mcts = [2, 5, 10, 30]
+candidate=False
+az = [i for i in range(0,1001,100)]
+mcts = [1000,100] # [2, 5, 10, 30, 100]
+candidates = [f'az{a}' for a in az] + [f'mcts{m}' for m in mcts] 
+# az = [i for i in range(1000,1001,2)]
+
+# logs = ['battle18.log', 'battle19.log', 'battle20.log']
+
 iterations = 100
 visualize = True
 
@@ -42,6 +53,9 @@ for t in range(iterations):
     elo = Elo(k = 10)
     for l in lines:
         g = l.split('/')
+        if candidate == True:
+            if (g[0] not in candidates) or (g[1] not in candidates):
+                continue
         for gi in g[:2]:
             if gi not in elo.ratings:
                 elo.addPlayer(gi)
@@ -54,8 +68,11 @@ for t in range(iterations):
         else:
             avg[a] += elo.ratings[a]/iterations
 avg = OrderedDict([(k,v) for k, v in sorted(avg.items(), key=lambda i: i[1])])
+w = open(elo_log,'w')
 for l in reversed(list(avg)):
     print(l, avg[l])
+    w.write(f"{l} {avg[l]}\n")
+w.close()
 
 if visualize:
     chart = {}
