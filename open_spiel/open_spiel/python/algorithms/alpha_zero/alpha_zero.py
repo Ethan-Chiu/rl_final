@@ -114,7 +114,6 @@ class Buffer(object):
 
 class Config(collections.namedtuple(
     "Config", [
-        "seed",
         "game",
         "path",
         "learning_rate",
@@ -225,7 +224,7 @@ def _init_bot(config, game, evaluator_, evaluation):
       config.use_forced_playouts_and_policy_target_pruning,
       config.forced_playouts_and_policy_target_pruning_k,
       config.forced_playouts_and_policy_target_pruning_exponent,
-      random_state=np.random.RandomState(config.seed),
+      random_state=np.random.RandomState(),
       solve=False,
       dirichlet_noise=noise,
       child_selection_fn=mcts.SearchNode.puct_value,
@@ -273,7 +272,7 @@ def _play_game_from_state(config,init_state, logger, game_num, game, bots, tempe
   trajectory = Trajectory()
   actions = []
   state = init_state
-  random_state = np.random.RandomState(config.seed)
+  random_state = np.random.RandomState()
   logger.opt_print(" Starting game {} ".format(game_num).center(60, "-"))
   logger.opt_print("Initial state:\n{}".format(state))
   tree = [None] * 2
@@ -453,7 +452,7 @@ def evaluator(*, game, config, logger, queue):
   model = _init_model_from_config(config)
   logger.print("Initializing bots")
   az_evaluator = evaluator_lib.AlphaZeroEvaluator(game, model)
-  random_evaluator = mcts.RandomRolloutEvaluator(random_state=np.random.RandomState(config.seed))
+  random_evaluator = mcts.RandomRolloutEvaluator(random_state=np.random.RandomState())
 
   for game_num in itertools.count():
     if not update_checkpoint(logger, queue, model, az_evaluator):
@@ -469,7 +468,7 @@ def evaluator(*, game, config, logger, queue):
             config.uct_c,
             max_simulations,
             random_evaluator,
-            random_state=np.random.RandomState(config.seed),
+            random_state=np.random.RandomState(),
             use_playout_cap_randomization=config.use_playout_cap_randomization,
             playout_cap_randomization_p=config.playout_cap_randomization_p,
             playout_cap_randomization_fraction=config.playout_cap_randomization_fraction,
@@ -673,9 +672,6 @@ def learner(*, game, config, actors, evaluators, broadcast_fn, logger):
 
 def alpha_zero(config: Config):
   """Start all the worker processes for a full alphazero setup."""
-  np.random.seed(config.seed)
-  random.seed(config.seed)
-  print("fixed random seed", config.seed)
   game = pyspiel.load_game(config.game)
   config = config._replace(
       observation_shape=game.observation_tensor_shape(),

@@ -35,7 +35,6 @@ FLAGS = flags.FLAGS
 
 def main(unused_argv):
   config = alpha_zero.Config(
-      seed=0,
       game="dots_and_boxes",
       path=FLAGS.path,
       learning_rate=0.01,
