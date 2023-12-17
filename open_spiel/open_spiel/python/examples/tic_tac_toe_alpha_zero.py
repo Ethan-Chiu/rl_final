@@ -29,7 +29,12 @@ import tensorflow as tf
 from open_spiel.python.algorithms.alpha_zero import alpha_zero
 from open_spiel.python.utils import spawn
 
+<<<<<<< HEAD
 flags.DEFINE_string("path", "/home/howard/RL/final_project/results/test_dots_and_boxes_3*3_new_pcr_0.5_0.75", "Where to save checkpoints.")
+=======
+# flags.DEFINE_string("path", "/home/howard/RL/final_project/results/test_dots_and_boxes_3*3_all_maxsim100", "Where to save checkpoints.")
+flags.DEFINE_string("path", "../../../results/dab33_pcr_p05_f025_2", "Where to save checkpoints.")
+>>>>>>> 70a6728d94ffbdc50295f131fd48045f7561d25d
 FLAGS = flags.FLAGS
 seed = 0
 
