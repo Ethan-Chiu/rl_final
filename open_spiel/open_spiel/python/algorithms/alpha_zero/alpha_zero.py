@@ -255,7 +255,7 @@ def _play_game(config,logger, game_num, game, bots, temperature, temperature_dro
       alt_action = s[2]
       logger.print("Taken action {} instead of best action {}".format(bs.action_to_string(bs.current_player(), alt_action), bs.action_to_string(bs.current_player(), s[1])))
       bs.apply_action(alt_action)
-      t, _ = _play_game_from_state(bs, logger, game_num, game, bots, temperature, temperature_drop, 
+      t, _ = _play_game_from_state(config, bs, logger, game_num, game, bots, temperature, temperature_drop, 
                                    growing, fill, 
                                    use_apt, 
                                    False, None, 0, 0)

@@ -29,7 +29,7 @@ import tensorflow as tf
 from open_spiel.python.algorithms.alpha_zero import alpha_zero
 from open_spiel.python.utils import spawn
 
-flags.DEFINE_string("path", "../../../results/3x3_final_None", "Where to save checkpoints.")
+flags.DEFINE_string("path", "/home/howard/RL/final_project/results/dab_3*3_GB_0.999_4_2", "Where to save checkpoints.")
 
 FLAGS = flags.FLAGS
 
@@ -80,10 +80,10 @@ def main(unused_argv):
       auxiliary_policy_target_weight= 0.25,
 
       # Game Branch
-      use_game_branch=False,
-      game_branch_max_prob=0.5,
-      game_branch_number=1,
-      game_branch_prob_power=3,
+      use_game_branch=True,
+      game_branch_max_prob=0.999,
+      game_branch_number=4,
+      game_branch_prob_power=2,
   )
 
   alpha_zero.alpha_zero(config)
