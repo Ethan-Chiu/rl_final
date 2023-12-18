@@ -12,11 +12,10 @@ game = "dots_and_boxes"
 # 'dab33_fpptp_k1_5_e05', 'dab33_fpptp_k1_5_e025', 'dab33_fpptp_k2_e025'
 # 'dab33_fpptp_k3_e05', 'dab33_fpptp_k3_e075', 'dab33_fpptp_k2_5_e05'
 # directory = "../open_spiel/results/dab33_fpptp_k3_e05"
-directorys = ["/results/3x3_3_10",
-              "/results/3x3_3_11",
-              "/results/3x3_3_20",
-              "/results/3x3_3_21",]
-log = "dab33_fpptp_k3_e05.log"
+# directorys = ["../open_spiel/results/dab33_gb_mp099_n8_3", "../open_spiel/results/dab33_gb_mp099_n8_4"]
+# log = "dab33_gb_mp099_n8.log"
+directorys = ["../open_spiel/results/jimmybasic"]
+log = "jimmybasic.log"
 
 # "/home/howard/RL/final_project/models/base"
 # directory = "/home/howard/RL/final_project/results/test_dots_and_boxes_3*3_all_maxsim100"
@@ -26,7 +25,7 @@ log = "dab33_fpptp_k3_e05.log"
 # log = "battle.log"
 
 num_matches = 10
-num_games = 1000
+num_games = 100
 mcts = [1000]
 az = [100]
 
