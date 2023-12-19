@@ -3,7 +3,7 @@ import matplotlib.pyplot as plt
 import random
 
 iterations = 100
-games = 200
+games = 500
 names = ["max_none", "max_best"]
 visualize = True
 
@@ -15,7 +15,7 @@ for n in range(len(names)):
     for i in range(5):
         win[i] = input()
     winrate.append([[float(k) for k in z.split()] for z in win])
-    mult += (len(winrate)-1) * len(winrate[0])
+    mult += (len(winrate[-1])-1) * len(winrate[-1][0])
 games *= mult
 
 class Elo:
