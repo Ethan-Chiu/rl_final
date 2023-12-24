@@ -4,15 +4,16 @@ import random
 
 iterations = 100
 games = 500
-names = ["max_none", "max_best"]
+names = ["Original AlphaZero", "Our method"]
+bases = 4
 visualize = True
 
 mult = 0
 winrate = []
 for n in range(len(names)):
-    win = [0] * 5
+    win = [0] * (bases+1)
     print(names[n] + ':')
-    for i in range(5):
+    for i in range(bases+1):
         win[i] = input()
     winrate.append([[float(k) for k in z.split()] for z in win])
     mult += (len(winrate[-1])-1) * len(winrate[-1][0])
@@ -49,7 +50,7 @@ class Elo:
 
 avg = OrderedDict([])	
 players = [names[n] + '@'+str(int(z)) for n in range(len(names)) for z in winrate[n][0]]
-baselines = ['mcts10', 'mcts100', 'mcts1000', 'mcts10000']
+baselines = ['mcts10', 'mcts100', 'mcts1000', 'mcts10000'][:bases]
 for t in range(iterations):
     elo = Elo(k = 10)
     for z in baselines:
@@ -57,11 +58,21 @@ for t in range(iterations):
     for z in players:
         elo.addPlayer(z)
     for z in range(games):
-        a = random.randrange(0, len(winrate))
-        b = random.randrange(0, len(winrate[a][0])) 
-        c = random.randrange(0, 4)
-        d = 1 if random.random() < winrate[a][c+1][b]/2 else 0
-        elo.game(names[a]+'@'+str(int(winrate[a][0][b])), baselines[c], d)
+        q = random.random()
+        if q < 0.1:
+            i = random.randrange(len(baselines))
+            j = random.randrange(len(baselines))
+            if i < j:
+                elo.game(baselines[i], baselines[j], 0)
+        elif q > 0.9:
+            i = random.randrange(1, len(winrate[0][0]))
+            elo.game(names[0]+'@'+str(int(winrate[0][0][i])), names[1]+'@'+str(int(winrate[1][0][i])), 0)
+        else:
+            a = random.randrange(0, len(winrate))
+            b = random.randrange(0, len(winrate[a][0])) 
+            c = random.randrange(0, bases)
+            d = 1 if random.random() < winrate[a][c+1][b]/2 else 0
+            elo.game(names[a]+'@'+str(int(winrate[a][0][b])), baselines[c], d)
     for a in elo.ratings:
         if a not in avg:
             avg[a] = elo.ratings[a]/iterations
@@ -89,8 +100,11 @@ if visualize:
         maxstep = max(step, maxstep)
     for n in chart:
         x, y = zip(*sorted(zip(chart[n][0], chart[n][1])))
-        plt.plot(x, y, label=n)
+        plt.plot(x, y, label=n, marker='.')
     for b in baselines:
-        plt.plot((0, maxstep), (baselines[b], baselines[b]), label=b)
+        plt.axhline(y=baselines[b], color='k', linestyle='--')
+        plt.text(60, baselines[b] -10, 'mcts'+str(b), color='k', verticalalignment='top', horizontalalignment='right')
     plt.legend()
+    plt.xlabel('time', fontsize="10")
+    plt.ylabel('elo', fontsize="10")
     plt.show()
