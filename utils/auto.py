@@ -15,6 +15,10 @@ path = ['dab33_gb_mp099_n1_3', 'dab33_gb_mp099_n2_3', 'dab33_gb_mp099_n4_3', 'da
 gbmp = 0.999
 gbn = [1, 2, 4, 8, 1, 2, 4, 8]
 
+# p=[0.75,0.75]
+# f =[0.02,0.05]
+# max_steps=[150,150]
+
 for i in range(len(path)):
     # command = f"python runner.py --path=../open_spiel/results/{path[i]} --pcr=True --pcr_p={str(pcr_p[i])} --pcr_f={str(pcr_f[i])}"
     # command = f"python runner.py --path=../open_spiel/results/{path[i]} --fpptp=True --fpptp_k={str(fpptp_k[i])} --fpptp_e={str(fpptp_e[i])}"

@@ -224,19 +224,20 @@ def _init_bot(config, game, evaluator_, evaluation):
       config.use_forced_playouts_and_policy_target_pruning,
       config.forced_playouts_and_policy_target_pruning_k,
       config.forced_playouts_and_policy_target_pruning_exponent,
+      random_state=np.random.RandomState(),
       solve=False,
       dirichlet_noise=noise,
       child_selection_fn=mcts.SearchNode.puct_value,
       verbose=False,
       dont_return_chance_node=True)
 
-def _play_game(logger, game_num, game, bots, temperature, temperature_drop, 
+def _play_game(config,logger, game_num, game, bots, temperature, temperature_drop, 
                growing, fill, 
                use_apt, 
                use_game_branch, game_len_stat, branch_num, game_branch_max_prob, game_branch_prob_power):
   # Start a new game
   init_state = game.new_initial_state()
-  trajectory, branch_states = _play_game_from_state(init_state, logger, game_num, game, bots, temperature, temperature_drop, 
+  trajectory, branch_states = _play_game_from_state(config,init_state, logger, game_num, game, bots, temperature, temperature_drop, 
                                                     growing, fill,
                                                     use_apt, 
                                                     use_game_branch, game_len_stat, game_branch_max_prob, game_branch_prob_power)
@@ -247,14 +248,29 @@ def _play_game(logger, game_num, game, bots, temperature, temperature_drop,
   if use_game_branch:
     branch_states_count = len(branch_states)
     logger.print("Branch game, Total branch count: {};".format(branch_states_count))
+
+    # indices = random.choices(range(branch_states_count), k = branch_num)
+    # for idx_s in indices:
+    #   s = branch_states[idx_s]
+    #   bs = s[0].clone()
+    #   alt_action = s[2]
+    #   logger.print("Taken action {} instead of best action {}".format(bs.action_to_string(bs.current_player(), alt_action), bs.action_to_string(bs.current_player(), s[1])))
+    #   bs.apply_action(alt_action)
+    #   t, _ = _play_game_from_state(config, bs, logger, game_num, game, bots, temperature, temperature_drop, 
+    #                                growing, fill, 
+    #                                use_apt, 
+    #                                False, None, 0, 0)
+    #   trajectory_list.append(t)
+
     sample_count = branch_num if branch_num <= branch_states_count else branch_states_count
     sampled_branch_states = random.sample(branch_states, sample_count)
+      
     for s in sampled_branch_states:
       bs = s[0]
       alt_action = s[2]
       logger.print("Taken action {} instead of best action {}".format(bs.action_to_string(bs.current_player(), alt_action), bs.action_to_string(bs.current_player(), s[1])))
       bs.apply_action(alt_action)
-      t, _ = _play_game_from_state(bs, logger, game_num, game, bots, temperature, temperature_drop, 
+      t, _ = _play_game_from_state(config, bs, logger, game_num, game, bots, temperature, temperature_drop, 
                                    growing, fill, 
                                    use_apt, 
                                    False, None, 0, 0)
@@ -263,7 +279,7 @@ def _play_game(logger, game_num, game, bots, temperature, temperature_drop,
   return trajectory_list
   
 
-def _play_game_from_state(init_state, logger, game_num, game, bots, temperature, temperature_drop, 
+def _play_game_from_state(config,init_state, logger, game_num, game, bots, temperature, temperature_drop, 
                           growing, fill, 
                           use_apt, 
                           use_game_branch, mean_game_len, game_branch_max_prob, game_branch_prob_power):
@@ -350,18 +366,14 @@ def _play_game_from_state(init_state, logger, game_num, game, bots, temperature,
       # NOTE: Use game branch 
       if use_game_branch:
         go_branch = False
-        if game_branch_max_prob < 1:
+        if game_branch_max_prob <= 1:
           p = game_branch_max_prob * (2 * (0.5 - abs((current_len / mean_game_len) - 0.5)))**game_branch_prob_power
           p = 0 if p < 0 else p
           p = p if p < game_branch_max_prob else game_branch_max_prob
           if random.random() < p:
-              go_branch = True
-        elif current_len == game_branch_max_prob:
-            go_branch = True
-        if go_branch:
             clone_state = state.clone()
             policy_without_best = policy.copy()
-            policy_without_best[best_action] = 0.0
+            policy_without_best[action] = 0.0
             sum = policy_without_best.sum()
             # print("debug", sum)
             if not sum == 0:
@@ -370,6 +382,18 @@ def _play_game_from_state(init_state, logger, game_num, game, bots, temperature,
             else:
               alt_action = best_action
             branch_states.append((clone_state, action, alt_action))
+        elif current_len == game_branch_max_prob:
+            policy_without_best = policy.copy()
+            policy_without_best[action] = 0.0
+            for z in range(config.game_branch_number):
+                clone_state = state.clone()
+                sum = policy_without_best.sum()
+                if not sum == 0:
+                  alt_action = np.random.choice(len(policy_without_best), p=policy_without_best/sum)
+                else:
+                  alt_action = best_action
+                policy_without_best[alt_action] = 0.0
+                branch_states.append((clone_state, action, alt_action))
             
 
       # NOTE: Add opp_legal_actions_mask
@@ -429,7 +453,7 @@ def actor(*, config, game, logger, queue):
   for game_num in itertools.count():
     if not update_checkpoint(logger, queue, model, az_evaluator):
       return
-    trajectories = _play_game(logger, game_num, game, bots, temperature=config.temperature,
+    trajectories = _play_game(config,logger, game_num, game, bots, temperature=config.temperature,
                          temperature_drop=config.temperature_drop, growing=config.growing, fill=config.fill,
                          use_apt=config.use_auxiliary_policy_target, 
                          use_game_branch=config.use_game_branch, game_len_stat=mean_length, branch_num=config.game_branch_number, game_branch_max_prob=config.game_branch_max_prob, game_branch_prob_power=config.game_branch_prob_power)
@@ -451,7 +475,7 @@ def evaluator(*, game, config, logger, queue):
   model = _init_model_from_config(config)
   logger.print("Initializing bots")
   az_evaluator = evaluator_lib.AlphaZeroEvaluator(game, model)
-  random_evaluator = mcts.RandomRolloutEvaluator()
+  random_evaluator = mcts.RandomRolloutEvaluator(random_state=np.random.RandomState())
 
   for game_num in itertools.count():
     if not update_checkpoint(logger, queue, model, az_evaluator):
@@ -467,6 +491,7 @@ def evaluator(*, game, config, logger, queue):
             config.uct_c,
             max_simulations,
             random_evaluator,
+            random_state=np.random.RandomState(),
             use_playout_cap_randomization=config.use_playout_cap_randomization,
             playout_cap_randomization_p=config.playout_cap_randomization_p,
             playout_cap_randomization_fraction=config.playout_cap_randomization_fraction,
@@ -480,7 +505,7 @@ def evaluator(*, game, config, logger, queue):
     if az_player == 1:
       bots = list(reversed(bots))
 
-    trajectory = _play_game(logger, game_num, game, bots, temperature=1,
+    trajectory = _play_game(config,logger, game_num, game, bots, temperature=1,
                             temperature_drop=0, growing=0, fill=0,
                             use_apt=config.use_auxiliary_policy_target, 
                             use_game_branch=False, game_len_stat=None, branch_num=None, game_branch_max_prob=None, game_branch_prob_power=None)[0]

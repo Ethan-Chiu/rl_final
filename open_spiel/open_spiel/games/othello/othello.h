@@ -34,8 +34,8 @@ namespace othello {
 
 // Constants.
 inline constexpr int kNumPlayers = 2;
-inline constexpr int kNumRows = 8;
-inline constexpr int kNumCols = 8;
+inline constexpr int kNumRows = 6;
+inline constexpr int kNumCols = 6;
 inline constexpr int kNumCells = kNumRows * kNumCols;
 inline constexpr int kCellStates = 1 + kNumPlayers;  // empty, 'x', and 'o'.
 inline constexpr int kPassMove = kNumCells;

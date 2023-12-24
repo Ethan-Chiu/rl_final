@@ -29,22 +29,28 @@ import tensorflow as tf
 from open_spiel.python.algorithms.alpha_zero import alpha_zero
 from open_spiel.python.utils import spawn
 
-# flags.DEFINE_string("path", "/home/howard/RL/final_project/results/test_dots_and_boxes_3*3_all_maxsim100", "Where to save checkpoints.")
-flags.DEFINE_string("path", "../../../results/dab33_pcr_p05_f025_2", "Where to save checkpoints.")
+# flags.DEFINE_string("path", "/home/howard/RL/final_project/results/dab_3*3_GB_0.999_4_2", "Where to save checkpoints.")
+# _growing_fill_gb_p11_n16
+# pcr_p075_f02_final
+# dab33_pcr_p075_f02
+# othello66_growing_fill_gb_p099_n16
+# othello66_growing_fill_gb_p23_n4
+flags.DEFINE_string("path", "../../../results/othello88_growing_fill_gb_p47_n4", "Where to save checkpoints.")
+
 FLAGS = flags.FLAGS
-seed = 0
 
 def main(unused_argv):
   config = alpha_zero.Config(
-      game="dots_and_boxes",
+      game="othello",
+      # game="dots_and_boxes",
       path=FLAGS.path,
       learning_rate=0.01,
       weight_decay=1e-4,
       train_batch_size=64,
       replay_buffer_size=2**14,
       replay_buffer_reuse=10,
-      max_steps=100,
-      checkpoint_freq=10,
+      max_steps=250,
+      checkpoint_freq=5,
 
       actors=4,
       evaluators=0,
@@ -66,42 +72,28 @@ def main(unused_argv):
       quiet=True,
 
       use_playout_cap_randomization = False,
-      playout_cap_randomization_p = 0.25,
-      playout_cap_randomization_fraction = 0.25,
+      playout_cap_randomization_p = 0.75,
+      playout_cap_randomization_fraction = 0.2,
 
       use_forced_playouts_and_policy_target_pruning = False,
       forced_playouts_and_policy_target_pruning_k = 2,
       forced_playouts_and_policy_target_pruning_exponent = 0.5,
 
-      growing = 0,
-      fill = 0,
+      growing = 1,
+      fill = 1,
 
       # APT
       use_auxiliary_policy_target=False,
       auxiliary_policy_target_weight= 0.25,
 
-      # Game branch
-      use_game_branch=False,
-      game_branch_number=1,
-      game_branch_max_prob=0.5,
-      game_branch_prob_power=4,
+      # Game Branch
+      use_game_branch=True,
+      game_branch_max_prob=47,
+      game_branch_number=4,
+      game_branch_prob_power=2,
   )
 
-  set_seed(seed)
   alpha_zero.alpha_zero(config)
-
-def set_seed(seed):
-  # os.environ['PYTHONHASHSEED'] = str(seed)
-  random.seed(seed)
-  np.random.seed(seed)
-  # tf.compat.v1.set_random_seed(seed)
-  # tf.compat.v1.random.set_random_seed(seed)
-  # tf.random.set_seed(seed)
-  # tf.experimental.numpy.random.seed(seed)
-  # tf.config.experimental.enable_op_determinism()
-  # os.environ['TF_DETERMINISTIC_OPS'] = '1'
-  # os.environ['TF_CUDNN_DETERMINISTIC'] = '1'
-
 
 if __name__ == "__main__":
   with spawn.main_handler():
