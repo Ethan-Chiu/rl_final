@@ -29,6 +29,10 @@ This code base is extended from the OpenSpiel by Deepmind.
     pip3 install --upgrade setuptools testresources
     ```
 
+    ```bash
+    pip install tensorflow # make sure you install the correct version that fits your device
+    ```
+
 3. Build games
 
     ```bash
