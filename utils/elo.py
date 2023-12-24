@@ -2,21 +2,21 @@ from collections import OrderedDict
 import matplotlib.pyplot as plt
 import random
 
-
-logs = ['/home/howard/RL/final_project/logs/mcts.log']
-elo_log = '/home/howard/RL/final_project/logs/elo_mcts.log'
-
-# mcts = [2, 5, 10, 30]
-candidate=False
-az = [i for i in range(0,1001,100)]
-mcts = [1000,100] # [2, 5, 10, 30, 100]
-candidates = [f'az{a}' for a in az] + [f'mcts{m}' for m in mcts] 
-# az = [i for i in range(1000,1001,2)]
-
-# logs = ['battle18.log', 'battle19.log', 'battle20.log']
-
 iterations = 100
+games = 500
+names = ["max_none", "max_best"]
 visualize = True
+
+mult = 0
+winrate = []
+for n in range(len(names)):
+    win = [0] * 5
+    print(names[n] + ':')
+    for i in range(5):
+        win[i] = input()
+    winrate.append([[float(k) for k in z.split()] for z in win])
+    mult += (len(winrate[-1])-1) * len(winrate[-1][0])
+games *= mult
 
 class Elo:
     def __init__(self, k):
@@ -28,6 +28,10 @@ class Elo:
 
     def game(self, a, b, r):
         result = 1/((10.0**(min((self.ratings[b]-self.ratings[a])/400.0, 255)))+1)
+        # if a[:2] == 'az':
+            # self.ratings[a] = max(self.ratings[a] + self.k * (r - result), 0)
+        # if b[:2] == 'az':
+            # self.ratings[b] = max(self.ratings[b] + self.k * (result - r), 0)
         self.ratings[a] = max(self.ratings[a] + self.k * (r - result), 0)
         self.ratings[b] = max(self.ratings[b] + self.k * (result - r), 0)
         # self.sort()
@@ -43,70 +47,50 @@ class Elo:
         return a, b
 
 
-lines = []
-for log in logs:
-    f = open(log, 'r')
-    lines.extend(f.readlines())
 avg = OrderedDict([])	
+players = [names[n] + '@'+str(int(z)) for n in range(len(names)) for z in winrate[n][0]]
+baselines = ['mcts10', 'mcts100', 'mcts1000', 'mcts10000']
 for t in range(iterations):
-    random.shuffle(lines)
     elo = Elo(k = 10)
-    for l in lines:
-        g = l.split('/')
-        if candidate == True:
-            if (g[0] not in candidates) or (g[1] not in candidates):
-                continue
-        for gi in g[:2]:
-            if gi not in elo.ratings:
-                elo.addPlayer(gi)
-        results = eval(g[2])
-        for i in results:
-            elo.game(g[0], g[1], (i+1)/2)
+    for z in baselines:
+        elo.addPlayer(z)
+    for z in players:
+        elo.addPlayer(z)
+    for z in range(games):
+        a = random.randrange(0, len(winrate))
+        b = random.randrange(0, len(winrate[a][0])) 
+        c = random.randrange(0, 4)
+        d = 1 if random.random() < winrate[a][c+1][b]/2 else 0
+        elo.game(names[a]+'@'+str(int(winrate[a][0][b])), baselines[c], d)
     for a in elo.ratings:
         if a not in avg:
             avg[a] = elo.ratings[a]/iterations
         else:
             avg[a] += elo.ratings[a]/iterations
 avg = OrderedDict([(k,v) for k, v in sorted(avg.items(), key=lambda i: i[1])])
-w = open(elo_log,'w')
 for l in reversed(list(avg)):
     print(l, avg[l])
-    w.write(f"{l} {avg[l]}\n")
-w.close()
 
 if visualize:
     chart = {}
     baselines = {}
     maxstep = 0
     for k in avg.keys():
-        found = False
-        algindex = -1
-        name = ""
-        for index, char in enumerate(k):
-            if char.isdigit():
-                if algindex == -1:
-                    algindex = index
-                found = True
-            elif found and not char.isdigit():
-                step = int(k[algindex:index])
-                alg = k[:algindex]
-                name = k[index:]
-                break
+        if len(k) > 4 and k[:4] == "mcts":
+            baselines[int(k[4:])] = avg[k]
+            continue
+        name, step = k.split('@')
+        step = int(step)
+        if name not in chart:
+            chart[name] = [[step], []]
         else:
-            step = int(k[algindex:])
-            alg = k[:algindex]
-        if alg == "az":
-            if name not in chart:
-                chart[name] = [[step], []]
-            else:
-                chart[name][0].append(step)
-            chart[name][1].append(avg[k])
-            maxstep = max(step, maxstep)
-        elif alg == "mcts":
-            baselines[step] = avg[k]
+            chart[name][0].append(step)
+        chart[name][1].append(avg[k])
+        maxstep = max(step, maxstep)
     for n in chart:
         x, y = zip(*sorted(zip(chart[n][0], chart[n][1])))
-        plt.plot(x, y)
+        plt.plot(x, y, label=n)
     for b in baselines:
-        plt.plot((0, maxstep), (baselines[b], baselines[b]))
+        plt.plot((0, maxstep), (baselines[b], baselines[b]), label=b)
+    plt.legend()
     plt.show()
